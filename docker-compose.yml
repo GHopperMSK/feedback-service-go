@@ -1,0 +1,89 @@
+version: "3"
+services:
+
+  app:
+    image: golang:1.16-alpine
+    container_name: app
+    volumes:
+      - .:/go/src/feedback-service-go
+    ports: 
+      - 8080:8080 
+    working_dir: /go/src/feedback-service-go
+    command: go run .
+    depends_on:
+      - kafka
+      - db
+    environment:
+      MYSQL_ROOT_PASSWORD: secret
+      MYSQL_DATABASE: feedback_service
+      MYSQL_USER: db_user
+      MYSQL_PASSWORD: secret
+    networks:
+      - feedback_network
+
+  db:
+    image: mysql:5.7
+    container_name: db
+    volumes:
+      - ./init.sql:/data/application/init.sql
+    restart: always
+    environment:
+      MYSQL_ROOT_PASSWORD: secret
+      MYSQL_DATABASE: feedback_service
+      MYSQL_USER: db_user
+      MYSQL_PASSWORD: secret
+    command: --init-file /data/application/init.sql
+    networks:
+      - feedback_network
+
+  zookeeper:
+    image: bitnami/zookeeper:3.6.1
+    container_name: zookeeper
+    restart: unless-stopped
+    environment:
+      ALLOW_ANONYMOUS_LOGIN: 'yes'
+    ports:
+      - '9201:2181'
+    networks:
+      - feedback_network
+
+  kafka:
+    image: bitnami/kafka:2.5.0
+    container_name: kafka
+    restart: unless-stopped
+    ports:
+      - '29092:29092'
+    environment:
+      ALLOW_PLAINTEXT_LISTENER: "yes"
+      KAFKA_CFG_ZOOKEEPER_CONNECT: "zookeeper:2181"
+      KAFKA_LISTENER_SECURITY_PROTOCOL_MAP: "PLAINTEXT:PLAINTEXT,PLAINTEXT_HOST:PLAINTEXT"
+      KAFKA_LISTENERS: "PLAINTEXT://:9092,PLAINTEXT_HOST://:29092"
+      KAFKA_ADVERTISED_LISTENERS: "PLAINTEXT://kafka:9092,PLAINTEXT_HOST://localhost:29092"
+      ALLOW_ANONYMOUS_LOGIN: "yes"
+      KAFKA_CFG_AUTO_CREATE_TOPICS_ENABLE: "true"
+    depends_on:
+      - zookeeper
+    networks:
+      feedback_network:
+        ipv4_address: 192.168.0.40
+
+  kafkadrop:
+    image: obsidiandynamics/kafdrop
+    container_name: kafkadrop
+    environment:
+      KAFKA_BROKERCONNECT: 'kafka:9092'
+      JVM_OPTS: '-Xms32M -Xmx64M'
+      SERVER_SERVLET_CONTEXTPATH: '/'
+    ports:
+      - '9203:9000'
+    depends_on:
+      - kafka
+    networks:
+      - feedback_network
+
+networks:
+  feedback_network:
+    driver: bridge
+    ipam:
+      config:
+        - subnet: 192.168.0.0/24

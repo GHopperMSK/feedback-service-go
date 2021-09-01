@@ -1,0 +1,39 @@
+version: "3"
+services:
+  app_test:
+    image: golang:1.16-alpine
+    container_name: app_test
+    volumes:
+      - .:/go/src/feedback-service-go
+    working_dir: /go/src/feedback-service-go
+    command: go test -v .
+    # command: go run .
+    depends_on:
+      - app
+    environment:
+      CGO_ENABLED: 0 
+      MYSQL_ROOT_PASSWORD: secret
+      MYSQL_DATABASE: feedback_service_test
+      MYSQL_USER: db_user
+      MYSQL_PASSWORD: secret
+    networks:
+      - feedback_network
+  app:
+    hostname: app
+    environment:
+      MYSQL_ROOT_PASSWORD: secret
+      MYSQL_DATABASE: feedback_service_test
+      MYSQL_USER: db_user
+      MYSQL_PASSWORD: secret
+  db:
+    volumes:
+      - ./init_test.sql:/data/application/init_test.sql
+    environment:
+      MYSQL_ROOT_PASSWORD: secret
+      MYSQL_DATABASE: feedback_service_test
+      MYSQL_USER: db_user
+      MYSQL_PASSWORD: secret
+    command: --init-file /data/application/init_test.sql
+networks:
+  feedback_network:
+    driver: bridge
