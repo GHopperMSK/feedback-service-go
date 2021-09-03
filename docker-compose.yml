@@ -54,6 +54,7 @@ services:
     ports:
       - '29092:29092'
     environment:
+      KAFKA_CREATE_TOPICS: "test:1:1"
       ALLOW_PLAINTEXT_LISTENER: "yes"
       KAFKA_CFG_ZOOKEEPER_CONNECT: "zookeeper:2181"
       KAFKA_LISTENER_SECURITY_PROTOCOL_MAP: "PLAINTEXT:PLAINTEXT,PLAINTEXT_HOST:PLAINTEXT"
@@ -65,7 +66,6 @@ services:
       - zookeeper
     networks:
       feedback_network:
-        ipv4_address: 192.168.0.40
 
   kafkadrop:
     image: obsidiandynamics/kafdrop
@@ -84,6 +84,3 @@ services:
 networks:
   feedback_network:
     driver: bridge
-    ipam:
-      config:
-        - subnet: 192.168.0.0/24
