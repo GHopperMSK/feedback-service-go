@@ -2,16 +2,16 @@ package main
 
 import (
 	"context"
+	"encoding/json"
 	"fmt"
 	"log"
 	"net/http"
 	"os"
-	"strconv"
-	"time"
 
 	"github.com/gorilla/mux"
 
 	fbhandler "feedback-service-go/handlers"
+	repository "feedback-service-go/repositories"
 	mysql "feedback-service-go/repositories/mysql"
 
 	kafka "github.com/segmentio/kafka-go"
@@ -23,18 +23,16 @@ const (
 )
 
 func main() {
-	time.Sleep(5 * time.Second)
 	log.Println("Start server")
-
-	ctx := context.Background()
-	go produce(ctx)
-	go consume(ctx)
 
 	repository, err := mysql.New()
 	if err != nil {
 		panic(err.Error())
 	}
 	log.Println("Successfully connected to the storage")
+
+	ctx := context.Background()
+	go consume(ctx, repository)
 
 	feedbackHandler := fbhandler.New(repository)
 
@@ -47,41 +45,7 @@ func main() {
 	log.Fatal(http.ListenAndServe(":8080", router))
 }
 
-func produce(ctx context.Context) {
-	// initialize a counter
-	i := 0
-
-	l := log.New(os.Stdout, "kafka writer: ", 0)
-	// intialize the writer with the broker addresses, and the topic
-	w := kafka.NewWriter(kafka.WriterConfig{
-		Brokers: []string{brokerAddress},
-		Topic:   topic,
-		// assign the logger to the writer
-		Logger: l,
-	})
-
-	for {
-		// each kafka message has a key and value. The key is used
-		// to decide which partition (and consequently, which broker)
-		// the message gets published on
-		err := w.WriteMessages(ctx, kafka.Message{
-			Key: []byte(strconv.Itoa(i)),
-			// create an arbitrary message payload for the value
-			Value: []byte("this is message" + strconv.Itoa(i)),
-		})
-		if err != nil {
-			panic("could not write message " + err.Error())
-		}
-
-		// log a confirmation once the message is written
-		fmt.Println("writes:", i)
-		i++
-		// sleep for a second
-		time.Sleep(time.Second)
-	}
-}
-
-func consume(ctx context.Context) {
+func consume(ctx context.Context, repo repository.Repository) {
 	// create a new logger that outputs to stdout
 	// and has the `kafka reader` prefix
 	l := log.New(os.Stdout, "kafka reader: ", 0)
@@ -91,17 +55,41 @@ func consume(ctx context.Context) {
 	r := kafka.NewReader(kafka.ReaderConfig{
 		Brokers: []string{brokerAddress},
 		Topic:   topic,
-		// GroupID: "my-group",
+		// GroupID: "feedback-group",
 		// assign the logger to the reader
 		Logger: l,
 	})
 	for {
 		// the `ReadMessage` method blocks until we receive the next event
-		msg, err := r.ReadMessage(ctx)
+		rawMsg, err := r.ReadMessage(ctx)
 		if err != nil {
 			panic("could not read message " + err.Error())
 		}
+
+		var inputFeedback repository.KafkaFeedback
+		err = json.Unmarshal(rawMsg.Value, &inputFeedback)
+		if err != nil {
+			panic(err.Error())
+		}
+
+		// TODO: check if inputFeedback.Version valid
+
+		parentId := 0
+		if inputFeedback.ParentId.Valid {
+			parentId = int(inputFeedback.ParentId.Int64)
+		}
+		request := repository.FeedbackRequest{
+			ParentId:   parentId,
+			SenderId:   inputFeedback.SenderId,
+			ReceiverId: inputFeedback.ReceiverId,
+			TradeId:    inputFeedback.TradeId,
+			Message:    inputFeedback.Message,
+			Type:       inputFeedback.Type,
+		}
+
+		repo.Create(&request)
+
 		// after receiving the message, log its value
-		fmt.Println("received: ", string(msg.Value))
+		fmt.Println("sucessfully got:", string(rawMsg.Value))
 	}
 }
