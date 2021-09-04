@@ -5,6 +5,7 @@ import (
 	"encoding/json"
 	"net/url"
 	"reflect"
+	"time"
 )
 
 type FeedbackRequest struct {
@@ -14,6 +15,7 @@ type FeedbackRequest struct {
 	TradeId    int `json:"trade_id"`
 	Message    string
 	Type       string
+	CreatedAt  string `json:"created_at"`
 }
 
 func (request *FeedbackRequest) Validate() url.Values {
@@ -41,6 +43,13 @@ func (request *FeedbackRequest) Validate() url.Values {
 
 	if request.Type != "positive" && request.Type != "negative" {
 		errs.Add("type", "The type field must be either 'positive' or 'negative'!")
+	}
+
+	if request.CreatedAt != "" {
+		_, err := time.Parse("2006-01-02 15:04:05", request.CreatedAt)
+		if err != nil {
+			errs.Add("created_at", err.Error())
+		}
 	}
 
 	return errs
@@ -123,10 +132,10 @@ type FeedbackFilter struct {
 
 type KafkaFeedback struct {
 	Version    string
-	ParentId   NullInt64 `json:"parent_id"`
-	SenderId   int       `json:"sender_id"`
-	ReceiverId int       `json:"receiver_id"`
-	TradeId    int       `json:"trade_id"`
+	ParentId   int `json:"parent_id"`
+	SenderId   int `json:"sender_id"`
+	ReceiverId int `json:"receiver_id"`
+	TradeId    int `json:"trade_id"`
 	Message    string
 	Type       string
 	CreatedAt  string `json:"created_at"`

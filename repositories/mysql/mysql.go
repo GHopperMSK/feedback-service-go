@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"log"
 	"os"
+	"strconv"
 
 	_ "github.com/go-sql-driver/mysql"
 
@@ -120,16 +121,27 @@ func (r *MysqlRepository) Find(filter *repository.FeedbackFilter) ([]*repository
 }
 
 func (r *MysqlRepository) Create(request *repository.FeedbackRequest) (int, error) {
-	const queryTemplate string = "INSERT INTO feedbacks(parent_id, sender_id, receiver_id, trade_id, message, type) VALUES(%s, %d, %d, %d, '%s', '%s')"
+	const queryTemplate string = "INSERT INTO feedbacks(parent_id, sender_id, receiver_id, trade_id, message, type, created_at) VALUES(%s, %d, %d, %d, '%s', '%s', '%s')"
+
+	parentId := "NULL"
+	if request.ParentId > 0 {
+		parentId = strconv.Itoa(request.ParentId)
+	}
+
+	createdAt := "NOW()"
+	if request.CreatedAt != "" {
+		createdAt = request.CreatedAt
+	}
 
 	sql := fmt.Sprintf(
 		queryTemplate,
-		"NULL",
+		parentId,
 		request.SenderId,
 		request.ReceiverId,
 		request.TradeId,
 		request.Message,
 		request.Type,
+		createdAt,
 	)
 	log.Println(sql)
 

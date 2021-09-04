@@ -74,20 +74,21 @@ func consume(ctx context.Context, repo repository.Repository) {
 
 		// TODO: check if inputFeedback.Version valid
 
-		parentId := 0
-		if inputFeedback.ParentId.Valid {
-			parentId = int(inputFeedback.ParentId.Int64)
-		}
 		request := repository.FeedbackRequest{
-			ParentId:   parentId,
+			ParentId:   inputFeedback.ParentId,
 			SenderId:   inputFeedback.SenderId,
 			ReceiverId: inputFeedback.ReceiverId,
 			TradeId:    inputFeedback.TradeId,
 			Message:    inputFeedback.Message,
 			Type:       inputFeedback.Type,
+			CreatedAt:  inputFeedback.CreatedAt,
 		}
 
-		repo.Create(&request)
+		if len(request.Validate()) == 0 {
+			repo.Create(&request)
+		} else {
+			log.Println("request validation error")
+		}
 
 		// after receiving the message, log its value
 		fmt.Println("sucessfully got:", string(rawMsg.Value))

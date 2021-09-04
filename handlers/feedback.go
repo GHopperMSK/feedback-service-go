@@ -82,7 +82,7 @@ func (h *FeedbackHandler) CreateFeedback(w http.ResponseWriter, r *http.Request)
 
 	validErrs := feedbackRequest.Validate()
 	if len(validErrs) > 0 {
-		err := map[string]interface{}{"validationE4rror": validErrs}
+		err := map[string]interface{}{"validationError": validErrs}
 		w.Header().Set("Content-type", "applciation/json")
 		w.WriteHeader(http.StatusBadRequest)
 		json.NewEncoder(w).Encode(err)
