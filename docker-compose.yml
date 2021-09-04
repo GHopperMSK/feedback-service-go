@@ -11,7 +11,7 @@ services:
     working_dir: /go/src/feedback-service-go
     command: go run .
     depends_on:
-      - kafka
+      - create-topics
       - db
     environment:
       MYSQL_ROOT_PASSWORD: secret
@@ -65,7 +65,21 @@ services:
     depends_on:
       - zookeeper
     networks:
-      feedback_network:
+      - feedback_network
+
+  create-topics:
+    image: confluentinc/cp-kafka:5.5.0
+    container_name: create-topics
+    depends_on:
+      - kafka
+    command: "
+      bash -c 'cub kafka-ready -b kafka:9092 1 120 && \
+      kafka-topics --create --if-not-exists --zookeeper zookeeper:2181 --partitions 1 --replication-factor 1 --topic test'"
+    environment:
+      KAFKA_BROKER_ID: ignored
+      KAFKA_ZOOKEEPER_CONNECT: ignored
+    networks:
+      - feedback_network
 
   kafkadrop:
     image: obsidiandynamics/kafdrop
