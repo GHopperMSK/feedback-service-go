@@ -29,10 +29,10 @@ func TestGetEmptyFeedbackList(t *testing.T) {
 func TestCreateFeedback(t *testing.T) {
 	resetDatabase()
 
-	var requestJson = []byte(`{"sender_id":1,"receiver_id":2,"trade_id":1,"message":"text message","type":"positive"}`)
+	var requestJson = []byte(`{"sender_id":1,"parent_id":1,"receiver_id":2,"trade_id":1,"message":"text message","type":"positive","created_at":"2021-09-06 05:01:43"}`)
 	jsonResponse := getBody("POST", "http://app:8080/feedback", bytes.NewBuffer(requestJson), http.StatusCreated)
 
-	re, err := regexp.Compile(`{"Message":"text message","Type":"positive","created_at":"\d{4}-\d{2}-\d{2} \d{2}:\d{2}:\d{2}","deleted_at":null,"id":\d+,"parent_id":null,"receiver_id":2,"sender_id":1,"trade_id":1,"updated_at":"\d{4}-\d{2}-\d{2} \d{2}:\d{2}:\d{2}"}`)
+	re, err := regexp.Compile(`{"Message":"text message","Type":"positive","created_at":"2021-09-06 05:01:43","deleted_at":null,"id":\d+,"parent_id":1,"receiver_id":2,"sender_id":1,"trade_id":1,"updated_at":"\d{4}-\d{2}-\d{2} \d{2}:\d{2}:\d{2}"}`)
 	if err != nil {
 		t.Errorf(err.Error())
 	}

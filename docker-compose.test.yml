@@ -1,5 +1,6 @@
 version: "3"
 services:
+
   app_test:
     image: golang:1.16-alpine
     container_name: app_test
@@ -18,13 +19,15 @@ services:
       MYSQL_PASSWORD: secret
     networks:
       - feedback_network
+
   app:
-    hostname: app
+    container_name: app
     environment:
       MYSQL_ROOT_PASSWORD: secret
       MYSQL_DATABASE: feedback_service_test
       MYSQL_USER: db_user
       MYSQL_PASSWORD: secret
+
   db:
     volumes:
       - ./init_test.sql:/data/application/init_test.sql
@@ -34,6 +37,7 @@ services:
       MYSQL_USER: db_user
       MYSQL_PASSWORD: secret
     command: --init-file /data/application/init_test.sql
+
 networks:
   feedback_network:
     driver: bridge

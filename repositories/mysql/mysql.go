@@ -121,7 +121,7 @@ func (r *MysqlRepository) Find(filter *repository.FeedbackFilter) ([]*repository
 }
 
 func (r *MysqlRepository) Create(request *repository.FeedbackRequest) (int, error) {
-	const queryTemplate string = "INSERT INTO feedbacks(parent_id, sender_id, receiver_id, trade_id, message, type, created_at) VALUES(%s, %d, %d, %d, '%s', '%s', '%s')"
+	const queryTemplate string = "INSERT INTO feedbacks(parent_id, sender_id, receiver_id, trade_id, message, type, created_at) VALUES(%s, %d, %d, %d, '%s', '%s', %s)"
 
 	parentId := "NULL"
 	if request.ParentId > 0 {
@@ -130,7 +130,7 @@ func (r *MysqlRepository) Create(request *repository.FeedbackRequest) (int, erro
 
 	createdAt := "NOW()"
 	if request.CreatedAt != "" {
-		createdAt = request.CreatedAt
+		createdAt = "'" + request.CreatedAt + "'"
 	}
 
 	sql := fmt.Sprintf(
