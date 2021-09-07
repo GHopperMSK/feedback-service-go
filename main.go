@@ -7,8 +7,8 @@ import (
 
 	"github.com/gorilla/mux"
 
-	fbhandler "feedback-service-go/handlers/feedback"
 	khandler "feedback-service-go/handlers/kafka"
+	rhandler "feedback-service-go/handlers/rest"
 	mysql "feedback-service-go/repositories/mysql"
 )
 
@@ -24,7 +24,7 @@ func main() {
 	ctx := context.Background()
 	go khandler.Consume(ctx, repository)
 
-	feedbackHandler := fbhandler.New(repository)
+	feedbackHandler := rhandler.New(repository)
 
 	router := mux.NewRouter().StrictSlash(true)
 	router.HandleFunc("/feedback/{id}", feedbackHandler.GetFeedback).Methods("GET")
