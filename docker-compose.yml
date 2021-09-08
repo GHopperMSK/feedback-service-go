@@ -4,6 +4,7 @@ services:
   app:
     image: golang:1.16-alpine
     container_name: app
+    restart: "no"
     volumes:
       - .:/go/src/feedback-service-go
     ports: 
@@ -24,6 +25,7 @@ services:
   db:
     image: mysql:5.7
     container_name: db
+    restart: "no"
     volumes:
       - ./init.sql:/data/application/init.sql
       - ./db_data:/var/lib/mysql
@@ -40,7 +42,7 @@ services:
   zookeeper:
     image: bitnami/zookeeper:3.6.1
     container_name: zookeeper
-    restart: unless-stopped
+    restart: "no"
     environment:
       ALLOW_ANONYMOUS_LOGIN: 'yes'
     ports:
@@ -51,7 +53,7 @@ services:
   kafka:
     image: bitnami/kafka:2.5.0
     container_name: kafka
-    restart: unless-stopped
+    restart: "no"
     ports:
       - '29092:29092'
     environment:
@@ -71,6 +73,7 @@ services:
   create-topics:
     image: confluentinc/cp-kafka:5.5.0
     container_name: create-topics
+    restart: "no"
     depends_on:
       - kafka
     command: "
@@ -85,6 +88,7 @@ services:
   kafkadrop:
     image: obsidiandynamics/kafdrop
     container_name: kafkadrop
+    restart: "no"
     environment:
       KAFKA_BROKERCONNECT: 'kafka:9092'
       JVM_OPTS: '-Xms32M -Xmx64M'
