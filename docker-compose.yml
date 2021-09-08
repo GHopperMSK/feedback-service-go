@@ -26,12 +26,13 @@ services:
     container_name: db
     volumes:
       - ./init.sql:/data/application/init.sql
+      - ./db_data:/var/lib/mysql
     restart: always
     environment:
       MYSQL_ROOT_PASSWORD: secret
       MYSQL_DATABASE: feedback_service
       MYSQL_USER: db_user
-      MYSQL_PASSWORD: secret
+      MYSQL_PASSWORD: secret2
     command: --init-file /data/application/init.sql
     networks:
       - feedback_network
@@ -98,3 +99,6 @@ services:
 networks:
   feedback_network:
     driver: bridge
+
+volumes:
+  db_data:

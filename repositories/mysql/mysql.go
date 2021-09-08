@@ -159,16 +159,27 @@ func (r *MysqlRepository) Create(request *repository.FeedbackRequest) (int, erro
 }
 
 func (r *MysqlRepository) Update(id int, request *repository.FeedbackRequest) error {
-	const queryTemplate string = "UPDATE feedbacks SET parent_id=%s, sender_id=%d, receiver_id=%d, trade_id=%d, message='%s', type='%s', updated_at=NOW() WHERE id=%d"
+	const queryTemplate string = "UPDATE feedbacks SET parent_id=%s, sender_id=%d, receiver_id=%d, trade_id=%d, message='%s', type='%s', created_at=%s updated_at=NOW() WHERE id=%d"
+
+	parentId := "NULL"
+	if request.ParentId > 0 {
+		parentId = strconv.Itoa(request.ParentId)
+	}
+
+	createdAt := "NOW()"
+	if request.CreatedAt != "" {
+		createdAt = "'" + request.CreatedAt + "'"
+	}
 
 	sql := fmt.Sprintf(
 		queryTemplate,
-		"NULL",
+		parentId,
 		request.SenderId,
 		request.ReceiverId,
 		request.TradeId,
 		request.Message,
 		request.Type,
+		createdAt,
 		id,
 	)
 	log.Println(sql)

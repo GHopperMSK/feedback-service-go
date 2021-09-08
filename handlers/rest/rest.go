@@ -13,17 +13,17 @@ import (
 	"github.com/gorilla/mux"
 )
 
-type FeedbackHandler struct {
+type restHandler struct {
 	repo repository.Repository
 }
 
-func New(repo repository.Repository) *FeedbackHandler {
-	return &FeedbackHandler{
+func New(repo repository.Repository) *restHandler {
+	return &restHandler{
 		repo: repo,
 	}
 }
 
-func (h *FeedbackHandler) GetFeedback(w http.ResponseWriter, r *http.Request) {
+func (h *restHandler) GetFeedback(w http.ResponseWriter, r *http.Request) {
 	log.Println("GetFeedback")
 
 	inputFeedbackID := mux.Vars(r)["id"]
@@ -48,7 +48,7 @@ func (h *FeedbackHandler) GetFeedback(w http.ResponseWriter, r *http.Request) {
 	json.NewEncoder(w).Encode(feedback)
 }
 
-func (h *FeedbackHandler) GetFeedbacksByFilter(w http.ResponseWriter, r *http.Request) {
+func (h *restHandler) GetFeedbacksByFilter(w http.ResponseWriter, r *http.Request) {
 	log.Println("GetFeedbacksByFilter")
 
 	filter := getFilter(r.URL.Query())
@@ -62,11 +62,11 @@ func (h *FeedbackHandler) GetFeedbacksByFilter(w http.ResponseWriter, r *http.Re
 	json.NewEncoder(w).Encode(feedbacks)
 }
 
-func (h *FeedbackHandler) GetById(id int) (*repository.Feedback, error) {
+func (h *restHandler) GetById(id int) (*repository.Feedback, error) {
 	return h.repo.FindByID(id)
 }
 
-func (h *FeedbackHandler) CreateFeedback(w http.ResponseWriter, r *http.Request) {
+func (h *restHandler) CreateFeedback(w http.ResponseWriter, r *http.Request) {
 	log.Println("CreateFeedback")
 	reqBody, err := ioutil.ReadAll(r.Body)
 	defer r.Body.Close()
@@ -103,7 +103,7 @@ func (h *FeedbackHandler) CreateFeedback(w http.ResponseWriter, r *http.Request)
 	json.NewEncoder(w).Encode(feedback)
 }
 
-func (h *FeedbackHandler) UpdateFeedback(w http.ResponseWriter, r *http.Request) {
+func (h *restHandler) UpdateFeedback(w http.ResponseWriter, r *http.Request) {
 	log.Println("UpdateFeedback")
 	inputFeedbackID := mux.Vars(r)["id"]
 	var feedbackRequest repository.FeedbackRequest
@@ -140,7 +140,7 @@ func (h *FeedbackHandler) UpdateFeedback(w http.ResponseWriter, r *http.Request)
 	w.WriteHeader(http.StatusNoContent)
 }
 
-func (h *FeedbackHandler) DeleteFeedback(w http.ResponseWriter, r *http.Request) {
+func (h *restHandler) DeleteFeedback(w http.ResponseWriter, r *http.Request) {
 	log.Println("DeleteFeedback")
 	inputFeedbackID := mux.Vars(r)["id"]
 	feedbackID, err := strconv.Atoi(inputFeedbackID)

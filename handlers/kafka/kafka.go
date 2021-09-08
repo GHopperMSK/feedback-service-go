@@ -42,21 +42,18 @@ func Consume(ctx context.Context, repo repository.Repository) {
 		if err != nil {
 			panic(err.Error())
 		}
-
-		fmt.Printf("type: %T, value: %v", inputRequest.Payload, inputRequest.Payload)
+		fmt.Println("sucessfully got from Kafka:", string(rawMsg.Value))
 
 		switch inputRequest.Action {
 		case "create-action":
-			createFeedback(inputRequest.Payload, repo)
+			go createFeedback(inputRequest.Payload, repo)
 		case "update-action":
-			updateFeedback(inputRequest.Payload, repo)
+			go updateFeedback(inputRequest.Payload, repo)
 		case "delete-action":
-			deleteFeedback(inputRequest.Payload, repo)
+			go deleteFeedback(inputRequest.Payload, repo)
 		default:
-			panic("Unknown action")
+			fmt.Println("got unknown action:", inputRequest.Action)
 		}
-
-		fmt.Println("sucessfully got:", string(rawMsg.Value))
 	}
 }
 

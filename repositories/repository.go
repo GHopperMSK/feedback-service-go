@@ -129,14 +129,3 @@ type FeedbackFilter struct {
 	TradeId     int  `json:"trade_id"`
 	WithTrashed bool `json:"with_trashed"`
 }
-
-type KafkaFeedback struct {
-	Version    string
-	ParentId   int `json:"parent_id"`
-	SenderId   int `json:"sender_id"`
-	ReceiverId int `json:"receiver_id"`
-	TradeId    int `json:"trade_id"`
-	Message    string
-	Type       string
-	CreatedAt  string `json:"created_at"`
-}
