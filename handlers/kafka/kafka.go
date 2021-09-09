@@ -46,10 +46,13 @@ func Consume(ctx context.Context, repo repository.Repository) {
 
 		switch inputRequest.Action {
 		case "create-action":
+			// TODO: check for inputRequest.Version
 			go createFeedback(inputRequest.Payload, repo)
 		case "update-action":
+			// TODO: check for inputRequest.Version
 			go updateFeedback(inputRequest.Payload, repo)
 		case "delete-action":
+			// TODO: check for inputRequest.Version
 			go deleteFeedback(inputRequest.Payload, repo)
 		default:
 			fmt.Println("got unknown action:", inputRequest.Action)
@@ -58,7 +61,6 @@ func Consume(ctx context.Context, repo repository.Repository) {
 }
 
 func createFeedback(payload json.RawMessage, repo repository.Repository) {
-	// TODO: check if inputFeedback.Version valid
 	var inputData createRequest
 	err := json.Unmarshal(payload, &inputData)
 	if err != nil {
@@ -83,7 +85,6 @@ func createFeedback(payload json.RawMessage, repo repository.Repository) {
 }
 
 func updateFeedback(payload json.RawMessage, repo repository.Repository) {
-	// TODO: check if inputFeedback.Version valid
 	var inputData updateRequest
 	err := json.Unmarshal(payload, &inputData)
 	if err != nil {
@@ -108,7 +109,6 @@ func updateFeedback(payload json.RawMessage, repo repository.Repository) {
 }
 
 func deleteFeedback(payload json.RawMessage, repo repository.Repository) {
-	// TODO: check if inputFeedback.Version valid
 	var inputData deleteRequest
 	err := json.Unmarshal(payload, &inputData)
 	if err != nil {
@@ -120,11 +120,11 @@ func deleteFeedback(payload json.RawMessage, repo repository.Repository) {
 
 type kafkaRequest struct {
 	Action  string
+	Version string
 	Payload json.RawMessage
 }
 
 type createRequest struct {
-	Version    string
 	ParentId   int `json:"parent_id"`
 	SenderId   int `json:"sender_id"`
 	ReceiverId int `json:"receiver_id"`
@@ -135,7 +135,6 @@ type createRequest struct {
 }
 
 type updateRequest struct {
-	Version    string
 	Id         int
 	ParentId   int `json:"parent_id"`
 	SenderId   int `json:"sender_id"`
@@ -147,6 +146,5 @@ type updateRequest struct {
 }
 
 type deleteRequest struct {
-	Version string
-	Id      int
+	Id int
 }

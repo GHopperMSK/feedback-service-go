@@ -13,6 +13,11 @@ import (
 	"github.com/gorilla/mux"
 )
 
+const (
+	defaultLimit = 10
+	maxLimit     = 1000
+)
+
 type restHandler struct {
 	repo repository.Repository
 }
@@ -53,13 +58,13 @@ func (h *restHandler) GetFeedbacksByFilter(w http.ResponseWriter, r *http.Reques
 
 	filter := getFilter(r.URL.Query())
 
-	feedbacks, err := h.repo.Find(filter)
+	response, err := h.repo.Find(filter)
 	if err != nil {
 		panic(err.Error())
 	}
 
 	w.WriteHeader(http.StatusOK)
-	json.NewEncoder(w).Encode(feedbacks)
+	json.NewEncoder(w).Encode(response)
 }
 
 func (h *restHandler) GetById(id int) (*repository.Feedback, error) {
@@ -157,36 +162,23 @@ func (h *restHandler) DeleteFeedback(w http.ResponseWriter, r *http.Request) {
 }
 
 func getFilter(query url.Values) *repository.FeedbackFilter {
+	var err error
+
 	filter := repository.FeedbackFilter{}
 
-	inputSenderId := query.Get("sender_id")
-	if inputSenderId != "" {
-		intVal, err := strconv.Atoi(inputSenderId)
-		if err != nil {
-			panic(err.Error())
-		}
-
-		filter.SenderId = intVal
+	filter.SenderId, err = getIntParam(query, "sender_id", 0)
+	if err != nil {
+		panic(err.Error())
 	}
 
-	inputReceiverId := query.Get("receiver_id")
-	if inputReceiverId != "" {
-		intVal, err := strconv.Atoi(inputReceiverId)
-		if err != nil {
-			panic(err.Error())
-		}
-
-		filter.ReceiverId = intVal
+	filter.ReceiverId, err = getIntParam(query, "receiver_id", 0)
+	if err != nil {
+		panic(err.Error())
 	}
 
-	inputTradeId := query.Get("trade_id")
-	if inputTradeId != "" {
-		intVal, err := strconv.Atoi(inputTradeId)
-		if err != nil {
-			panic(err.Error())
-		}
-
-		filter.TradeId = intVal
+	filter.TradeId, err = getIntParam(query, "trade_id", 0)
+	if err != nil {
+		panic(err.Error())
 	}
 
 	inputWithTrashed := query.Get("with_trashed")
@@ -196,5 +188,43 @@ func getFilter(query url.Values) *repository.FeedbackFilter {
 		filter.WithTrashed = false
 	}
 
+	filter.Offset, err = getIntParam(query, "offset", 0)
+	if err != nil {
+		panic(err.Error())
+	}
+
+	intVal := 0
+	inputLimit := query.Get("limit")
+	if inputLimit != "" {
+		var err error
+		intVal, err = strconv.Atoi(inputLimit)
+		if err != nil {
+			panic(err.Error())
+		}
+	} else {
+		intVal = defaultLimit
+	}
+	filter.Limit = min(intVal, maxLimit)
+
 	return &filter
+}
+
+func getIntParam(query url.Values, paramName string, defaultValue int) (int, error) {
+	inputSenderId := query.Get(paramName)
+	if inputSenderId != "" {
+		intVal, err := strconv.Atoi(inputSenderId)
+		if err != nil {
+			return 0, err
+		}
+
+		return intVal, nil
+	}
+	return defaultValue, nil
+}
+
+func min(x, y int) int {
+	if x < y {
+		return x
+	}
+	return y
 }

@@ -73,10 +73,10 @@ func (r *MysqlRepository) FindByID(id int) (*repository.Feedback, error) {
 	return &feedback, nil
 }
 
-func (r *MysqlRepository) Find(filter *repository.FeedbackFilter) ([]*repository.Feedback, error) {
+func (r *MysqlRepository) Find(filter *repository.FeedbackFilter) (*repository.FeedbackResponse, error) {
 	feedbacks := make([]*repository.Feedback, 0)
 
-	sql := "SELECT * FROM feedbacks WHERE 1=1"
+	sql := "SELECT %s FROM feedbacks WHERE 1=1"
 	if !filter.WithTrashed {
 		sql += " AND deleted_at IS NULL"
 	}
@@ -90,7 +90,16 @@ func (r *MysqlRepository) Find(filter *repository.FeedbackFilter) ([]*repository
 		sql += fmt.Sprintf(" AND trade_id = %d", filter.TradeId)
 	}
 
-	results, err := r.db.Query(sql)
+	var cnt int
+	result := r.db.QueryRow(sql, "COUNT(*)")
+	err := result.Scan(&cnt)
+	if err != nil {
+		return nil, err
+	}
+
+	sql += fmt.Sprintf(" LIMIT %d, %d", filter.Offset, filter.Limit)
+
+	results, err := r.db.Query(fmt.Sprintf(sql, "*"))
 	if err != nil {
 		return nil, err
 	}
@@ -117,7 +126,14 @@ func (r *MysqlRepository) Find(filter *repository.FeedbackFilter) ([]*repository
 		feedbacks = append(feedbacks, &feedback)
 	}
 
-	return feedbacks, nil
+	response := repository.FeedbackResponse{
+		Total:  cnt,
+		Items:  feedbacks,
+		Offser: filter.Offset,
+		Limit:  filter.Limit,
+	}
+
+	return &response, nil
 }
 
 func (r *MysqlRepository) Create(request *repository.FeedbackRequest) (int, error) {
@@ -159,27 +175,41 @@ func (r *MysqlRepository) Create(request *repository.FeedbackRequest) (int, erro
 }
 
 func (r *MysqlRepository) Update(id int, request *repository.FeedbackRequest) error {
-	const queryTemplate string = "UPDATE feedbacks SET parent_id=%s, sender_id=%d, receiver_id=%d, trade_id=%d, message='%s', type='%s', created_at=%s, updated_at=NOW() WHERE id=%d"
+	const queryTemplate string = "UPDATE feedbacks SET %supdated_at=NOW() WHERE id=%d"
 
-	parentId := "NULL"
+	updatedColumns := ""
+
 	if request.ParentId > 0 {
-		parentId = strconv.Itoa(request.ParentId)
+		updatedColumns += fmt.Sprintf("parent_id=%s, ", strconv.Itoa(request.ParentId))
 	}
 
-	createdAt := "NOW()"
+	if request.SenderId > 0 {
+		updatedColumns += fmt.Sprintf("sender_id=%s, ", strconv.Itoa(request.SenderId))
+	}
+
+	if request.ReceiverId > 0 {
+		updatedColumns += fmt.Sprintf("receiver_id=%s, ", strconv.Itoa(request.ReceiverId))
+	}
+
+	if request.TradeId > 0 {
+		updatedColumns += fmt.Sprintf("trade_id=%s, ", strconv.Itoa(request.TradeId))
+	}
+
+	if request.Message != "" {
+		updatedColumns += fmt.Sprintf("message=\"%s\", ", request.Message)
+	}
+
+	if request.Type != "" {
+		updatedColumns += fmt.Sprintf("type=\"%s\", ", request.Type)
+	}
+
 	if request.CreatedAt != "" {
-		createdAt = "'" + request.CreatedAt + "'"
+		updatedColumns += fmt.Sprintf("created_at=\"%s\", ", request.CreatedAt)
 	}
 
 	sql := fmt.Sprintf(
 		queryTemplate,
-		parentId,
-		request.SenderId,
-		request.ReceiverId,
-		request.TradeId,
-		request.Message,
-		request.Type,
-		createdAt,
+		updatedColumns,
 		id,
 	)
 	log.Println(sql)

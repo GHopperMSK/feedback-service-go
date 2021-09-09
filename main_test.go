@@ -20,7 +20,7 @@ func TestGetEmptyFeedbackList(t *testing.T) {
 
 	jsonResponse := getBody("GET", "http://app:8080/feedbacks", nil, http.StatusOK)
 
-	expected := `[]`
+	expected := `{"items":[],"limit":10,"offset":0,"total":0}`
 	if expected != string(jsonResponse) {
 		t.Errorf("Bad response! Expected: %v, extual: %v", expected, string(jsonResponse))
 	}
@@ -60,7 +60,7 @@ func TestUpdateFeedback(t *testing.T) {
 
 	jsonResponse = getBody("GET", "http://app:8080/feedbacks", nil, http.StatusOK)
 
-	re, err = regexp.Compile(`\[{"Message":"text message new","Type":"negative","created_at":"\d{4}-\d{2}-\d{2} \d{2}:\d{2}:\d{2}","deleted_at":null,"id":1,"parent_id":null,"receiver_id":222,"sender_id":111,"trade_id":333,"updated_at":"\d{4}-\d{2}-\d{2} \d{2}:\d{2}:\d{2}"}\]`)
+	re, err = regexp.Compile(`{"items":\[{"Message":"text message new","Type":"negative","created_at":"\d{4}-\d{2}-\d{2} \d{2}:\d{2}:\d{2}","deleted_at":null,"id":1,"parent_id":null,"receiver_id":222,"sender_id":111,"trade_id":333,"updated_at":"\d{4}-\d{2}-\d{2} \d{2}:\d{2}:\d{2}"}\],"limit":10,"offset":0,"total":1}`)
 	if err != nil {
 		t.Errorf(err.Error())
 	}
@@ -93,7 +93,8 @@ func TestDeleteFeedback(t *testing.T) {
 
 	// check the result
 	jsonResponse = getBody("GET", "http://app:8080/feedbacks", nil, http.StatusOK)
-	re, err = regexp.Compile(`\[{"Message":"text message2","Type":"negative","created_at":"\d{4}-\d{2}-\d{2} \d{2}:\d{2}:\d{2}","deleted_at":null,"id":\d+,"parent_id":null,"receiver_id":3,"sender_id":1,"trade_id":2,"updated_at":"\d{4}-\d{2}-\d{2} \d{2}:\d{2}:\d{2}"}\]`)
+
+	re, err = regexp.Compile(`{"items":\[{"Message":"text message2","Type":"negative","created_at":"\d{4}-\d{2}-\d{2} \d{2}:\d{2}:\d{2}","deleted_at":null,"id":\d+,"parent_id":null,"receiver_id":3,"sender_id":1,"trade_id":2,"updated_at":"\d{4}-\d{2}-\d{2} \d{2}:\d{2}:\d{2}"}\],"limit":10,"offset":0,"total":1}`)
 	if err != nil {
 		t.Errorf(err.Error())
 	}

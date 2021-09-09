@@ -59,7 +59,7 @@ type Repository interface {
 	GetDB() *sql.DB
 	Close()
 	FindByID(id int) (*Feedback, error)
-	Find(filter *FeedbackFilter) ([]*Feedback, error)
+	Find(filter *FeedbackFilter) (*FeedbackResponse, error)
 	Create(request *FeedbackRequest) (int, error)
 	Update(id int, request *FeedbackRequest) error
 	Delete(id int) error
@@ -123,9 +123,18 @@ type Feedback struct {
 	DeletedAt  NullString `json:"deleted_at"`
 }
 
+type FeedbackResponse struct {
+	Total  int         `json:"total"`
+	Items  []*Feedback `json:"items"`
+	Offser int         `json:"offset"`
+	Limit  int         `json:"limit"`
+}
+
 type FeedbackFilter struct {
 	SenderId    int  `json:"sender_id"`
 	ReceiverId  int  `json:"receiver_id"`
 	TradeId     int  `json:"trade_id"`
 	WithTrashed bool `json:"with_trashed"`
+	Offset      int
+	Limit       int
 }
