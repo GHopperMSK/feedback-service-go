@@ -10,7 +10,8 @@ services:
     ports: 
       - 8080:8080 
     working_dir: /go/src/feedback-service-go
-    command: go run .
+    command: go run cmd/rest-server/main.go
+    # command: go run cmd/kafka-consumer/main.go
     depends_on:
       - create-topics
       - db

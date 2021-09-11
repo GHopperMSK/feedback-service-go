@@ -37,7 +37,7 @@ func Consume(ctx context.Context, repo repository.Repository) {
 			panic("could not read message " + err.Error())
 		}
 
-		var inputRequest kafkaRequest
+		var inputRequest KafkaRequest
 		err = json.Unmarshal(rawMsg.Value, &inputRequest)
 		if err != nil {
 			panic(err.Error())
@@ -47,21 +47,21 @@ func Consume(ctx context.Context, repo repository.Repository) {
 		switch inputRequest.Action {
 		case "create-action":
 			// TODO: check for inputRequest.Version
-			go createFeedback(inputRequest.Payload, repo)
+			go CreateFeedback(inputRequest.Payload, repo)
 		case "update-action":
 			// TODO: check for inputRequest.Version
-			go updateFeedback(inputRequest.Payload, repo)
+			go UpdateFeedback(inputRequest.Payload, repo)
 		case "delete-action":
 			// TODO: check for inputRequest.Version
-			go deleteFeedback(inputRequest.Payload, repo)
+			go DeleteFeedback(inputRequest.Payload, repo)
 		default:
 			fmt.Println("got unknown action:", inputRequest.Action)
 		}
 	}
 }
 
-func createFeedback(payload json.RawMessage, repo repository.Repository) {
-	var inputData createRequest
+func CreateFeedback(payload json.RawMessage, repo repository.Repository) {
+	var inputData CreateRequest
 	err := json.Unmarshal(payload, &inputData)
 	if err != nil {
 		panic(err.Error())
@@ -84,8 +84,8 @@ func createFeedback(payload json.RawMessage, repo repository.Repository) {
 	}
 }
 
-func updateFeedback(payload json.RawMessage, repo repository.Repository) {
-	var inputData updateRequest
+func UpdateFeedback(payload json.RawMessage, repo repository.Repository) {
+	var inputData UpdateRequest
 	err := json.Unmarshal(payload, &inputData)
 	if err != nil {
 		panic(err.Error())
@@ -108,8 +108,8 @@ func updateFeedback(payload json.RawMessage, repo repository.Repository) {
 	}
 }
 
-func deleteFeedback(payload json.RawMessage, repo repository.Repository) {
-	var inputData deleteRequest
+func DeleteFeedback(payload json.RawMessage, repo repository.Repository) {
+	var inputData DeleteRequest
 	err := json.Unmarshal(payload, &inputData)
 	if err != nil {
 		panic(err.Error())
@@ -118,13 +118,13 @@ func deleteFeedback(payload json.RawMessage, repo repository.Repository) {
 	repo.Delete(inputData.Id)
 }
 
-type kafkaRequest struct {
+type KafkaRequest struct {
 	Action  string
 	Version string
 	Payload json.RawMessage
 }
 
-type createRequest struct {
+type CreateRequest struct {
 	ParentId   int `json:"parent_id"`
 	SenderId   int `json:"sender_id"`
 	ReceiverId int `json:"receiver_id"`
@@ -134,7 +134,7 @@ type createRequest struct {
 	CreatedAt  string `json:"created_at"`
 }
 
-type updateRequest struct {
+type UpdateRequest struct {
 	Id         int
 	ParentId   int `json:"parent_id"`
 	SenderId   int `json:"sender_id"`
@@ -145,6 +145,6 @@ type updateRequest struct {
 	CreatedAt  string `json:"created_at"`
 }
 
-type deleteRequest struct {
+type DeleteRequest struct {
 	Id int
 }

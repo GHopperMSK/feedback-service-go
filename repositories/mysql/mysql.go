@@ -12,11 +12,11 @@ import (
 	repository "feedback-service-go/repositories"
 )
 
-type MysqlRepository struct {
+type mysqlRepository struct {
 	db *sql.DB
 }
 
-func (r *MysqlRepository) GetDB() *sql.DB {
+func (r *mysqlRepository) GetDB() *sql.DB {
 	return r.db
 }
 
@@ -42,14 +42,14 @@ func New() (repository.Repository, error) {
 	// dbConnection.SetMaxIdleConns(idleConn)
 	// dbConnection.SetMaxOpenConns(maxConn)
 
-	return &MysqlRepository{db: dbConnection}, nil
+	return &mysqlRepository{db: dbConnection}, nil
 }
 
-func (r *MysqlRepository) Close() {
+func (r *mysqlRepository) Close() {
 	r.db.Close()
 }
 
-func (r *MysqlRepository) FindByID(id int) (*repository.Feedback, error) {
+func (r *mysqlRepository) FindByID(id int) (*repository.Feedback, error) {
 	const queryTemplate string = `SELECT * FROM feedbacks WHERE id = ? AND deleted_at IS NULL`
 
 	var feedback repository.Feedback
@@ -73,7 +73,7 @@ func (r *MysqlRepository) FindByID(id int) (*repository.Feedback, error) {
 	return &feedback, nil
 }
 
-func (r *MysqlRepository) Find(filter *repository.FeedbackFilter) (*repository.FeedbackResponse, error) {
+func (r *mysqlRepository) Find(filter *repository.FeedbackFilter) (*repository.FeedbackResponse, error) {
 	feedbacks := make([]*repository.Feedback, 0)
 
 	sql := "SELECT %s FROM feedbacks WHERE 1=1"
@@ -91,7 +91,8 @@ func (r *MysqlRepository) Find(filter *repository.FeedbackFilter) (*repository.F
 	}
 
 	var cnt int
-	result := r.db.QueryRow(sql, "COUNT(*)")
+	countSql := fmt.Sprintf(sql, "COUNT(*)")
+	result := r.db.QueryRow(countSql)
 	err := result.Scan(&cnt)
 	if err != nil {
 		return nil, err
@@ -136,7 +137,7 @@ func (r *MysqlRepository) Find(filter *repository.FeedbackFilter) (*repository.F
 	return &response, nil
 }
 
-func (r *MysqlRepository) Create(request *repository.FeedbackRequest) (int, error) {
+func (r *mysqlRepository) Create(request *repository.FeedbackRequest) (int, error) {
 	const queryTemplate string = "INSERT INTO feedbacks(parent_id, sender_id, receiver_id, trade_id, message, type, created_at) VALUES(%s, %d, %d, %d, '%s', '%s', %s)"
 
 	parentId := "NULL"
@@ -174,7 +175,7 @@ func (r *MysqlRepository) Create(request *repository.FeedbackRequest) (int, erro
 	return int(lastInsertedId), nil
 }
 
-func (r *MysqlRepository) Update(id int, request *repository.FeedbackRequest) error {
+func (r *mysqlRepository) Update(id int, request *repository.FeedbackRequest) error {
 	const queryTemplate string = "UPDATE feedbacks SET %supdated_at=NOW() WHERE id=%d"
 
 	updatedColumns := ""
@@ -222,7 +223,7 @@ func (r *MysqlRepository) Update(id int, request *repository.FeedbackRequest) er
 	return nil
 }
 
-func (r *MysqlRepository) Delete(id int) error {
+func (r *mysqlRepository) Delete(id int) error {
 	const queryTemplate string = "DELETE FROM feedbacks WHERE id=%d"
 
 	sql := fmt.Sprintf(
