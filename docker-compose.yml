@@ -2,7 +2,7 @@ version: "3"
 services:
 
   app:
-    image: golang:1.16-alpine
+    build: .
     container_name: app
     restart: "no"
     volumes:
@@ -10,7 +10,7 @@ services:
     ports: 
       - 8080:8080 
     working_dir: /go/src/feedback-service-go
-    command: go run cmd/rest-server/main.go
+    # command: sh -c "echo \"starting rest-server...\" && go run cmd/kafka-consumer/main.go && go run cmd/rest-server/main.go"
     # command: go run cmd/kafka-consumer/main.go
     depends_on:
       - create-topics
