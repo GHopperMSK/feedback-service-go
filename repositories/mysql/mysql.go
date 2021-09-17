@@ -164,6 +164,16 @@ func (r *mysqlRepository) Create(request *repository.FeedbackRequest) (int, erro
 
 	res, err := r.db.Exec(sql)
 	if err != nil {
+		log.Println("Error: " + err.Error())
+		return 0, err
+	}
+	err = createStats(r, request.ReceiverId)
+	if err != nil {
+		return 0, err
+	}
+
+	err = updateStats(r, request.ReceiverId, request.Type, true)
+	if err != nil {
 		return 0, err
 	}
 
@@ -176,42 +186,118 @@ func (r *mysqlRepository) Create(request *repository.FeedbackRequest) (int, erro
 }
 
 func (r *mysqlRepository) Update(id int, request *repository.FeedbackRequest) error {
-	const queryTemplate string = "UPDATE feedbacks SET %supdated_at=NOW() WHERE id=%d"
+	const queryTemplate string = "UPDATE feedbacks SET parent_id=%d, sender_id=%d, receiver_id=%d, trade_id=%d, message=\"%s\", type=\"%s\", created_at=\"%s\", updated_at=NOW() WHERE id=%d"
 
-	updatedColumns := ""
-
-	if request.ParentId > 0 {
-		updatedColumns += fmt.Sprintf("parent_id=%s, ", strconv.Itoa(request.ParentId))
+	feedback, err := r.FindByID(id)
+	if err != nil {
+		return err
 	}
 
-	if request.SenderId > 0 {
-		updatedColumns += fmt.Sprintf("sender_id=%s, ", strconv.Itoa(request.SenderId))
+	if request.ParentId != 0 {
+		feedback.ParentId.Int64 = int64(request.ParentId)
 	}
 
-	if request.ReceiverId > 0 {
-		updatedColumns += fmt.Sprintf("receiver_id=%s, ", strconv.Itoa(request.ReceiverId))
+	if request.SenderId != 0 {
+		feedback.SenderId = request.SenderId
 	}
 
-	if request.TradeId > 0 {
-		updatedColumns += fmt.Sprintf("trade_id=%s, ", strconv.Itoa(request.TradeId))
+	if request.ReceiverId != 0 {
+		feedback.ReceiverId = request.ReceiverId
+	}
+
+	if request.TradeId != 0 {
+		feedback.TradeId = request.TradeId
 	}
 
 	if request.Message != "" {
-		updatedColumns += fmt.Sprintf("message=\"%s\", ", request.Message)
+		feedback.Message = request.Message
 	}
 
-	if request.Type != "" {
-		updatedColumns += fmt.Sprintf("type=\"%s\", ", request.Type)
+	if request.Type != "" && request.Type != feedback.Type {
+		err = updateStats(r, id, feedback.Type, false)
+		if err != nil {
+			return err
+		}
+
+		err = updateStats(r, id, request.Type, true)
+		if err != nil {
+			return err
+		}
+
+		feedback.Type = request.Type
 	}
 
 	if request.CreatedAt != "" {
-		updatedColumns += fmt.Sprintf("created_at=\"%s\", ", request.CreatedAt)
+		feedback.CreatedAt = request.CreatedAt
 	}
 
 	sql := fmt.Sprintf(
 		queryTemplate,
-		updatedColumns,
+		feedback.ParentId.Int64,
+		feedback.SenderId,
+		feedback.ReceiverId,
+		feedback.TradeId,
+		feedback.Message,
+		feedback.Type,
+		feedback.CreatedAt,
 		id,
+	)
+	log.Println(sql)
+
+	_, err = r.db.Exec(sql)
+	if err != nil {
+		return err
+	}
+
+	return nil
+}
+
+func (r *mysqlRepository) Delete(id int) error {
+	const queryTemplate string = "DELETE FROM feedbacks WHERE id=%d"
+
+	feedback, err := r.FindByID(id)
+	if err != nil {
+		return err
+	}
+
+	sql := fmt.Sprintf(
+		queryTemplate,
+		id,
+	)
+	log.Println(sql)
+
+	err = updateStats(r, feedback.ReceiverId, feedback.Type, false)
+	if err != nil {
+		return err
+	}
+
+	_, err = r.db.Exec(sql)
+	if err != nil {
+		return err
+	}
+
+	return nil
+}
+
+func createStats(r *mysqlRepository, userId int) error {
+	// TODO: increase appropriate field
+	log.Println("checking for stats")
+
+	row := r.db.QueryRow("SELECT user_id FROM feedback_stats WHERE user_id=?", userId)
+	var dbData int
+	row.Scan(&dbData)
+	if dbData == userId {
+		log.Println("have found")
+		return nil
+	}
+
+	log.Println("didn't find")
+
+	const queryTemplate string = "INSERT INTO feedback_stats (user_id) VALUES(%d)"
+
+	sql := fmt.Sprintf(
+		queryTemplate,
+		userId,
 	)
 	log.Println(sql)
 
@@ -223,12 +309,19 @@ func (r *mysqlRepository) Update(id int, request *repository.FeedbackRequest) er
 	return nil
 }
 
-func (r *mysqlRepository) Delete(id int) error {
-	const queryTemplate string = "DELETE FROM feedbacks WHERE id=%d"
+func updateStats(r *mysqlRepository, userId int, feedbackType string, isIncrease bool) error {
+	var queryTemplate string
+	if isIncrease {
+		queryTemplate = "UPDATE feedback_stats SET %s = %s + 1 WHERE user_id=%d"
+	} else {
+		queryTemplate = "UPDATE feedback_stats SET %s = %s - 1 WHERE user_id=%d"
+	}
 
 	sql := fmt.Sprintf(
 		queryTemplate,
-		id,
+		feedbackType,
+		feedbackType,
+		userId,
 	)
 	log.Println(sql)
 

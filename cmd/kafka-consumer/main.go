@@ -17,6 +17,8 @@ import (
 func main() {
 	log.Println("Start kafka consumer server")
 
+	time.Sleep(10 * time.Second)
+
 	repository, err := mysql.New()
 	if err != nil {
 		panic(err.Error())
@@ -32,8 +34,8 @@ func main() {
 	// the groupID identifies the consumer and prevents
 	// it from receiving duplicate messages
 	r := kafka.NewReader(kafka.ReaderConfig{
-		Brokers: []string{os.Getenv("KAFKA_BROKER_ADDRESS")},
-		Topic:   os.Getenv("KAFKA_TOPOI_NAME"),
+		Brokers: []string{"kafka:9092"},
+		Topic:   "test",
 		// GroupID: "feedback-group",
 		Logger:      l,
 		MaxWait:     time.Duration(10000000000),
