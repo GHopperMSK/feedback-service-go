@@ -4,7 +4,6 @@ import (
 	"database/sql"
 	"fmt"
 	"log"
-	"os"
 	"strconv"
 
 	_ "github.com/go-sql-driver/mysql"
@@ -23,10 +22,10 @@ func (r *mysqlRepository) GetDB() *sql.DB {
 func New() (repository.Repository, error) {
 	dsn := fmt.Sprintf(
 		"%s:%s@tcp(%s:3306)/%s",
-		os.Getenv("MYSQL_USER"),
-		os.Getenv("MYSQL_PASSWORD"),
-		"db",
-		os.Getenv("MYSQL_DATABASE"),
+		"db_user",
+		"secret",
+		"localhost",
+		"feedback_service",
 	)
 
 	dbConnection, err := sql.Open("mysql", dsn)
@@ -162,18 +161,32 @@ func (r *mysqlRepository) Create(request *repository.FeedbackRequest) (int, erro
 	)
 	log.Println(sql)
 
-	res, err := r.db.Exec(sql)
+	tx, err := r.GetDB().Begin()
 	if err != nil {
-		log.Println("Error: " + err.Error())
 		return 0, err
 	}
+
+	res, err := r.db.Exec(sql)
+	if err != nil {
+		tx.Rollback()
+		return 0, err
+	}
+
 	err = createStats(r, request.ReceiverId)
 	if err != nil {
+		tx.Rollback()
 		return 0, err
 	}
 
 	err = updateStats(r, request.ReceiverId, request.Type, true)
 	if err != nil {
+		tx.Rollback()
+		return 0, err
+	}
+
+	err = tx.Commit()
+	if err != nil {
+		tx.Rollback()
 		return 0, err
 	}
 
@@ -213,14 +226,21 @@ func (r *mysqlRepository) Update(id int, request *repository.FeedbackRequest) er
 		feedback.Message = request.Message
 	}
 
+	tx, err := r.GetDB().Begin()
+	if err != nil {
+		return err
+	}
+
 	if request.Type != "" && request.Type != feedback.Type {
 		err = updateStats(r, id, feedback.Type, false)
 		if err != nil {
+			tx.Rollback()
 			return err
 		}
 
 		err = updateStats(r, id, request.Type, true)
 		if err != nil {
+			tx.Rollback()
 			return err
 		}
 
@@ -246,6 +266,12 @@ func (r *mysqlRepository) Update(id int, request *repository.FeedbackRequest) er
 
 	_, err = r.db.Exec(sql)
 	if err != nil {
+		tx.Rollback()
+		return err
+	}
+
+	err = tx.Commit()
+	if err != nil {
 		return err
 	}
 
@@ -266,13 +292,26 @@ func (r *mysqlRepository) Delete(id int) error {
 	)
 	log.Println(sql)
 
-	err = updateStats(r, feedback.ReceiverId, feedback.Type, false)
+	tx, err := r.GetDB().Begin()
 	if err != nil {
 		return err
 	}
 
-	_, err = r.db.Exec(sql)
+	err = updateStats(r, feedback.ReceiverId, feedback.Type, false)
 	if err != nil {
+		tx.Rollback()
+		return err
+	}
+
+	_, err = r.GetDB().Exec(sql)
+	if err != nil {
+		tx.Rollback()
+		return err
+	}
+
+	err = tx.Commit()
+	if err != nil {
+		tx.Rollback()
 		return err
 	}
 
