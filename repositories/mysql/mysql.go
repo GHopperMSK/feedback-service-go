@@ -137,6 +137,21 @@ func (r *mysqlRepository) Find(filter *repository.FeedbackFilter) (*repository.F
 }
 
 func (r *mysqlRepository) Create(request *repository.FeedbackRequest) (int, error) {
+	tx, err := r.db.Begin()
+	log.Println("transaction start")
+	if err != nil {
+		return 0, err
+	}
+	defer func() {
+		if err != nil {
+			log.Println("rollback")
+			tx.Rollback()
+			return
+		}
+		log.Println("commit")
+		err = tx.Commit()
+	}()
+
 	const queryTemplate string = "INSERT INTO feedbacks(parent_id, sender_id, receiver_id, trade_id, message, type, created_at) VALUES(%s, %d, %d, %d, '%s', '%s', %s)"
 
 	parentId := "NULL"
@@ -161,32 +176,18 @@ func (r *mysqlRepository) Create(request *repository.FeedbackRequest) (int, erro
 	)
 	log.Println(sql)
 
-	tx, err := r.GetDB().Begin()
+	res, err := tx.Exec(sql)
 	if err != nil {
 		return 0, err
 	}
 
-	res, err := r.db.Exec(sql)
+	err = createStats(tx, request.ReceiverId)
 	if err != nil {
-		tx.Rollback()
 		return 0, err
 	}
 
-	err = createStats(r, request.ReceiverId)
+	err = updateStats(tx, request.ReceiverId, request.Type, true)
 	if err != nil {
-		tx.Rollback()
-		return 0, err
-	}
-
-	err = updateStats(r, request.ReceiverId, request.Type, true)
-	if err != nil {
-		tx.Rollback()
-		return 0, err
-	}
-
-	err = tx.Commit()
-	if err != nil {
-		tx.Rollback()
 		return 0, err
 	}
 
@@ -199,6 +200,21 @@ func (r *mysqlRepository) Create(request *repository.FeedbackRequest) (int, erro
 }
 
 func (r *mysqlRepository) Update(id int, request *repository.FeedbackRequest) error {
+	tx, err := r.db.Begin()
+	log.Println("transaction start")
+	if err != nil {
+		return err
+	}
+	defer func() {
+		if err != nil {
+			log.Println("rollback")
+			tx.Rollback()
+			return
+		}
+		log.Println("commit")
+		err = tx.Commit()
+	}()
+
 	const queryTemplate string = "UPDATE feedbacks SET parent_id=%d, sender_id=%d, receiver_id=%d, trade_id=%d, message=\"%s\", type=\"%s\", created_at=\"%s\", updated_at=NOW() WHERE id=%d"
 
 	feedback, err := r.FindByID(id)
@@ -226,21 +242,14 @@ func (r *mysqlRepository) Update(id int, request *repository.FeedbackRequest) er
 		feedback.Message = request.Message
 	}
 
-	tx, err := r.GetDB().Begin()
-	if err != nil {
-		return err
-	}
-
 	if request.Type != "" && request.Type != feedback.Type {
-		err = updateStats(r, id, feedback.Type, false)
+		err = updateStats(tx, id, feedback.Type, false)
 		if err != nil {
-			tx.Rollback()
 			return err
 		}
 
-		err = updateStats(r, id, request.Type, true)
+		err = updateStats(tx, id, request.Type, true)
 		if err != nil {
-			tx.Rollback()
 			return err
 		}
 
@@ -266,12 +275,6 @@ func (r *mysqlRepository) Update(id int, request *repository.FeedbackRequest) er
 
 	_, err = r.db.Exec(sql)
 	if err != nil {
-		tx.Rollback()
-		return err
-	}
-
-	err = tx.Commit()
-	if err != nil {
 		return err
 	}
 
@@ -279,6 +282,21 @@ func (r *mysqlRepository) Update(id int, request *repository.FeedbackRequest) er
 }
 
 func (r *mysqlRepository) Delete(id int) error {
+	tx, err := r.db.Begin()
+	log.Println("transaction start")
+	if err != nil {
+		return err
+	}
+	defer func() {
+		if err != nil {
+			log.Println("rollback")
+			tx.Rollback()
+			return
+		}
+		log.Println("commit")
+		err = tx.Commit()
+	}()
+
 	const queryTemplate string = "DELETE FROM feedbacks WHERE id=%d"
 
 	feedback, err := r.FindByID(id)
@@ -292,37 +310,24 @@ func (r *mysqlRepository) Delete(id int) error {
 	)
 	log.Println(sql)
 
-	tx, err := r.GetDB().Begin()
+	err = updateStats(tx, feedback.ReceiverId, feedback.Type, false)
 	if err != nil {
 		return err
 	}
 
-	err = updateStats(r, feedback.ReceiverId, feedback.Type, false)
+	_, err = r.db.Exec(sql)
 	if err != nil {
-		tx.Rollback()
-		return err
-	}
-
-	_, err = r.GetDB().Exec(sql)
-	if err != nil {
-		tx.Rollback()
-		return err
-	}
-
-	err = tx.Commit()
-	if err != nil {
-		tx.Rollback()
 		return err
 	}
 
 	return nil
 }
 
-func createStats(r *mysqlRepository, userId int) error {
+func createStats(tx *sql.Tx, userId int) error {
 	// TODO: increase appropriate field
 	log.Println("checking for stats")
 
-	row := r.db.QueryRow("SELECT user_id FROM feedback_stats WHERE user_id=?", userId)
+	row := tx.QueryRow("SELECT user_id FROM feedback_stats WHERE user_id=?", userId)
 	var dbData int
 	row.Scan(&dbData)
 	if dbData == userId {
@@ -340,7 +345,7 @@ func createStats(r *mysqlRepository, userId int) error {
 	)
 	log.Println(sql)
 
-	_, err := r.db.Exec(sql)
+	_, err := tx.Exec(sql)
 	if err != nil {
 		return err
 	}
@@ -348,7 +353,7 @@ func createStats(r *mysqlRepository, userId int) error {
 	return nil
 }
 
-func updateStats(r *mysqlRepository, userId int, feedbackType string, isIncrease bool) error {
+func updateStats(tx *sql.Tx, userId int, feedbackType string, isIncrease bool) error {
 	var queryTemplate string
 	if isIncrease {
 		queryTemplate = "UPDATE feedback_stats SET %s = %s + 1 WHERE user_id=%d"
@@ -364,7 +369,7 @@ func updateStats(r *mysqlRepository, userId int, feedbackType string, isIncrease
 	)
 	log.Println(sql)
 
-	_, err := r.db.Exec(sql)
+	_, err := tx.Exec(sql)
 	if err != nil {
 		return err
 	}
