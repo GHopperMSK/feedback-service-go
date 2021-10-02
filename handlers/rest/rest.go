@@ -4,7 +4,6 @@ import (
 	"database/sql"
 	"encoding/json"
 	repository "feedback-service-go/repositories"
-	"io/ioutil"
 	"log"
 	"net/http"
 	"net/url"
@@ -72,115 +71,103 @@ func (h *restHandler) GetById(id int) (*repository.Feedback, error) {
 }
 
 func (h *restHandler) CreateFeedback(w http.ResponseWriter, r *http.Request) {
-	log.Println("CreateFeedback")
-	reqBody, err := ioutil.ReadAll(r.Body)
-	defer r.Body.Close()
-	if err != nil {
-		panic("Kindly enter data with the event title and description only in order to update")
-	}
+	// log.Println("CreateFeedback")
+	// reqBody, err := ioutil.ReadAll(r.Body)
+	// defer r.Body.Close()
+	// if err != nil {
+	// 	panic("Kindly enter data with the event title and description only in order to update")
+	// }
 
-	var feedbackRequest repository.FeedbackRequest
-	err = json.Unmarshal(reqBody, &feedbackRequest)
-	if err != nil {
-		panic(err.Error())
-	}
+	// var feedbackRequest repository.CreateRequest
+	// err = json.Unmarshal(reqBody, &feedbackRequest)
+	// if err != nil {
+	// 	panic(err.Error())
+	// }
 
-	validErrs := feedbackRequest.Validate()
-	if len(validErrs) > 0 {
-		err := map[string]interface{}{"validationError": validErrs}
-		w.Header().Set("Content-type", "applciation/json")
-		w.WriteHeader(http.StatusBadRequest)
-		json.NewEncoder(w).Encode(err)
-		return
-	}
+	// validErrs := feedbackRequest.Validate()
+	// if len(validErrs) > 0 {
+	// 	err := map[string]interface{}{"validationError": validErrs}
+	// 	w.Header().Set("Content-type", "applciation/json")
+	// 	w.WriteHeader(http.StatusBadRequest)
+	// 	json.NewEncoder(w).Encode(err)
+	// 	return
+	// }
 
-	id, err := h.repo.Create(&feedbackRequest)
-	if err != nil {
-		panic(err.Error())
-	}
+	// id, err := h.repo.Create(&feedbackRequest)
+	// if err != nil {
+	// 	panic(err.Error())
+	// }
 
-	feedback, err := h.GetById(int(id))
-	if err != nil {
-		panic(err)
-	}
+	// feedback, err := h.GetById(int(id))
+	// if err != nil {
+	// 	panic(err)
+	// }
 
 	w.WriteHeader(http.StatusCreated)
-	json.NewEncoder(w).Encode(feedback)
+	json.NewEncoder(w).Encode(true)
 }
 
 func (h *restHandler) UpdateFeedback(w http.ResponseWriter, r *http.Request) {
-	log.Println("UpdateFeedback")
-	inputFeedbackID := mux.Vars(r)["id"]
-	var feedbackRequest repository.FeedbackRequest
+	// log.Println("UpdateFeedback")
+	// inputFeedbackID := mux.Vars(r)["id"]
+	// var feedbackRequest repository.FeedbackRequest
 
-	reqBody, err := ioutil.ReadAll(r.Body)
-	defer r.Body.Close()
-	if err != nil {
-		panic("Kindly enter data with the event title and description only in order to update")
-	}
+	// reqBody, err := ioutil.ReadAll(r.Body)
+	// defer r.Body.Close()
+	// if err != nil {
+	// 	panic("Kindly enter data with the event title and description only in order to update")
+	// }
 
-	err = json.Unmarshal(reqBody, &feedbackRequest)
-	if err != nil {
-		panic(err.Error())
-	}
+	// err = json.Unmarshal(reqBody, &feedbackRequest)
+	// if err != nil {
+	// 	panic(err.Error())
+	// }
 
-	feedbackID, err := strconv.Atoi(inputFeedbackID)
-	if err != nil {
-		panic("can't convert string to int")
-	}
+	// feedbackID, err := strconv.Atoi(inputFeedbackID)
+	// if err != nil {
+	// 	panic("can't convert string to int")
+	// }
 
-	if validErrs := feedbackRequest.Validate(); len(validErrs) > 0 {
-		err := map[string]interface{}{"validationError": validErrs}
-		w.Header().Set("Content-type", "applciation/json")
-		w.WriteHeader(http.StatusBadRequest)
-		json.NewEncoder(w).Encode(err)
-		return
-	}
+	// if validErrs := feedbackRequest.Validate(); len(validErrs) > 0 {
+	// 	err := map[string]interface{}{"validationError": validErrs}
+	// 	w.Header().Set("Content-type", "applciation/json")
+	// 	w.WriteHeader(http.StatusBadRequest)
+	// 	json.NewEncoder(w).Encode(err)
+	// 	return
+	// }
 
-	err = h.repo.Update(feedbackID, &feedbackRequest)
-	if err != nil {
-		panic(err.Error())
-	}
+	// err = h.repo.Update(feedbackID, &feedbackRequest)
+	// if err != nil {
+	// 	panic(err.Error())
+	// }
 
-	w.WriteHeader(http.StatusNoContent)
+	// w.WriteHeader(http.StatusNoContent)
 }
 
 func (h *restHandler) DeleteFeedback(w http.ResponseWriter, r *http.Request) {
-	log.Println("DeleteFeedback")
-	inputFeedbackID := mux.Vars(r)["id"]
-	feedbackID, err := strconv.Atoi(inputFeedbackID)
-	if err != nil {
-		panic("can't convert string to int")
-	}
+	// log.Println("DeleteFeedback")
+	// inputFeedbackID := mux.Vars(r)["id"]
+	// feedbackID, err := strconv.Atoi(inputFeedbackID)
+	// if err != nil {
+	// 	panic("can't convert string to int")
+	// }
 
-	err = h.repo.Delete(feedbackID)
-	if err != nil {
-		panic(err.Error())
-	}
+	// err = h.repo.Delete(feedbackID)
+	// if err != nil {
+	// 	panic(err.Error())
+	// }
 
-	w.WriteHeader(http.StatusNoContent)
+	// w.WriteHeader(http.StatusNoContent)
 }
 
-func getFilter(query url.Values) *repository.FeedbackFilter {
+func getFilter(query url.Values) *repository.RequestFilter {
 	var err error
 
-	filter := repository.FeedbackFilter{}
+	filter := repository.RequestFilter{}
 
-	filter.SenderId, err = getIntParam(query, "sender_id", 0)
-	if err != nil {
-		panic(err.Error())
-	}
-
-	filter.ReceiverId, err = getIntParam(query, "receiver_id", 0)
-	if err != nil {
-		panic(err.Error())
-	}
-
-	filter.TradeId, err = getIntParam(query, "trade_id", 0)
-	if err != nil {
-		panic(err.Error())
-	}
-
+	filter.SenderUuid = query.Get("sender_uuid")
+	filter.ReceiverUuid = query.Get("receiver_uuid")
+	filter.TradeHash = query.Get("trade_hase")
 	inputWithTrashed := query.Get("with_trashed")
 	if inputWithTrashed == "1" {
 		filter.WithTrashed = true

@@ -49,18 +49,32 @@ func (r *mysqlRepository) Close() {
 }
 
 func (r *mysqlRepository) FindByID(id int) (*repository.Feedback, error) {
-	const queryTemplate string = `SELECT * FROM feedbacks WHERE id = ? AND deleted_at IS NULL`
+	const queryTemplate string = `SELECT id, parent_id, BIN_TO_UUID(sender_uuid), sender_name, sender_avater, BIN_TO_UUID(receiver_uuid), receiver_name, receiver_avater, offer_hash, offer_authorized, BIN_TO_UUID(offer_owner_uuid), offer_type, offer_payment_method, offer_payment_method_slug, offer_currency_code, offer_deleted_at, trade_hash, trade_fiat_amount_requested_in_usd, trade_status, message, feedback_type, created_at, updated_at, deleted_at FROM feedbacks WHERE id = ? AND deleted_at IS NULL`
 
 	var feedback repository.Feedback
 	result := r.db.QueryRow(queryTemplate, id)
 	err := result.Scan(
 		&feedback.ID,
 		&feedback.ParentId,
-		&feedback.SenderId,
-		&feedback.ReceiverId,
-		&feedback.TradeId,
+		&feedback.SenderUuid,
+		&feedback.SenderName,
+		&feedback.SenderAvatar,
+		&feedback.ReceiverUuid,
+		&feedback.ReceiverName,
+		&feedback.ReceiverAvatar,
+		&feedback.OfferHash,
+		&feedback.OfferAthorized,
+		&feedback.OfferOwnerUuid,
+		&feedback.OfferType,
+		&feedback.OfferPaymentMethod,
+		&feedback.OfferPaymentMethodSlug,
+		&feedback.OfferCurrencyCode,
+		&feedback.DeletedAt,
+		&feedback.TradeHash,
+		&feedback.TradeFiatAmountRequestedInUsd,
+		&feedback.TradeStatus,
 		&feedback.Message,
-		&feedback.Type,
+		&feedback.FeedbackType,
 		&feedback.CreatedAt,
 		&feedback.UpdatedAt,
 		&feedback.DeletedAt,
@@ -72,21 +86,21 @@ func (r *mysqlRepository) FindByID(id int) (*repository.Feedback, error) {
 	return &feedback, nil
 }
 
-func (r *mysqlRepository) Find(filter *repository.FeedbackFilter) (*repository.FeedbackResponse, error) {
+func (r *mysqlRepository) Find(filter *repository.RequestFilter) (*repository.FeedbackResponse, error) {
 	feedbacks := make([]*repository.Feedback, 0)
 
 	sql := "SELECT %s FROM feedbacks WHERE 1=1"
 	if !filter.WithTrashed {
 		sql += " AND deleted_at IS NULL"
 	}
-	if filter.SenderId != 0 {
-		sql += fmt.Sprintf(" AND sender_id = %d", filter.SenderId)
+	if filter.SenderUuid != "" {
+		sql += fmt.Sprintf(" AND sender_uuid = UUID_TO_BIN('%s')", filter.SenderUuid)
 	}
-	if filter.ReceiverId != 0 {
-		sql += fmt.Sprintf(" AND receiver_id = %d", filter.ReceiverId)
+	if filter.ReceiverUuid != "" {
+		sql += fmt.Sprintf(" AND receiver_uuid = UUID_TO_BIN('%s')", filter.ReceiverUuid)
 	}
-	if filter.TradeId != 0 {
-		sql += fmt.Sprintf(" AND trade_id = %d", filter.TradeId)
+	if filter.TradeHash != "" {
+		sql += fmt.Sprintf(" AND trade_hash = UUID_TO_BIN('%s')", filter.TradeHash)
 	}
 
 	var cnt int
@@ -110,11 +124,25 @@ func (r *mysqlRepository) Find(filter *repository.FeedbackFilter) (*repository.F
 		err = results.Scan(
 			&feedback.ID,
 			&feedback.ParentId,
-			&feedback.SenderId,
-			&feedback.ReceiverId,
-			&feedback.TradeId,
+			&feedback.SenderUuid,
+			&feedback.SenderName,
+			&feedback.SenderAvatar,
+			&feedback.ReceiverUuid,
+			&feedback.ReceiverName,
+			&feedback.ReceiverAvatar,
+			&feedback.OfferHash,
+			&feedback.OfferAthorized,
+			&feedback.OfferOwnerUuid,
+			&feedback.OfferType,
+			&feedback.OfferPaymentMethod,
+			&feedback.OfferPaymentMethodSlug,
+			&feedback.OfferCurrencyCode,
+			&feedback.DeletedAt,
+			&feedback.TradeHash,
+			&feedback.TradeFiatAmountRequestedInUsd,
+			&feedback.TradeStatus,
 			&feedback.Message,
-			&feedback.Type,
+			&feedback.FeedbackType,
 			&feedback.CreatedAt,
 			&feedback.UpdatedAt,
 			&feedback.DeletedAt,
@@ -136,7 +164,7 @@ func (r *mysqlRepository) Find(filter *repository.FeedbackFilter) (*repository.F
 	return &response, nil
 }
 
-func (r *mysqlRepository) Create(request *repository.FeedbackRequest) (int, error) {
+func (r *mysqlRepository) Create(request *repository.CreateRequest) (int, error) {
 	tx, err := r.db.Begin()
 	log.Println("transaction start")
 	if err != nil {
@@ -144,6 +172,7 @@ func (r *mysqlRepository) Create(request *repository.FeedbackRequest) (int, erro
 	}
 	defer func() {
 		if err != nil {
+			log.Println(err.Error())
 			log.Println("rollback")
 			tx.Rollback()
 			return
@@ -152,7 +181,7 @@ func (r *mysqlRepository) Create(request *repository.FeedbackRequest) (int, erro
 		err = tx.Commit()
 	}()
 
-	const queryTemplate string = "INSERT INTO feedbacks(parent_id, sender_id, receiver_id, trade_id, message, type, created_at) VALUES(%s, %d, %d, %d, '%s', '%s', %s)"
+	const queryTemplate string = "INSERT INTO feedbacks(parent_id, sender_uuid, sender_name, sender_avater, receiver_uuid, receiver_name, receiver_avater, offer_hash, offer_authorized, offer_owner_uuid, offer_type, offer_payment_method, offer_payment_method_slug, offer_currency_code, trade_hash, trade_fiat_amount_requested_in_usd, trade_status, message, feedback_type, created_at) VALUES(%s, UUID_TO_BIN('%s'), '%s', '%s', UUID_TO_BIN('%s'), '%s', '%s', '%s', %t, UUID_TO_BIN('%s'), '%s', '%s', '%s', '%s', '%s', '%s', '%s', '%s', '%s', %s)"
 
 	parentId := "NULL"
 	if request.ParentId > 0 {
@@ -167,11 +196,24 @@ func (r *mysqlRepository) Create(request *repository.FeedbackRequest) (int, erro
 	sql := fmt.Sprintf(
 		queryTemplate,
 		parentId,
-		request.SenderId,
-		request.ReceiverId,
-		request.TradeId,
+		request.SenderUuid,
+		request.SenderName,
+		request.SenderAvatar,
+		request.ReceiverUuid,
+		request.ReceiverName,
+		request.ReceiverAvatar,
+		request.OfferHash,
+		request.OfferAthorized,
+		request.OfferOwnerUuid,
+		request.OfferType,
+		request.OfferPaymentMethod,
+		request.OfferPaymentMethodSlug,
+		request.OfferCurrencyCode,
+		request.TradeHash,
+		request.TradeFiatAmountRequestedInUsd,
+		request.TradeStatus,
 		request.Message,
-		request.Type,
+		request.FeedbackType,
 		createdAt,
 	)
 	log.Println(sql)
@@ -181,12 +223,12 @@ func (r *mysqlRepository) Create(request *repository.FeedbackRequest) (int, erro
 		return 0, err
 	}
 
-	err = createStats(tx, request.ReceiverId)
+	err = createStats(tx, request.ReceiverUuid)
 	if err != nil {
 		return 0, err
 	}
 
-	err = updateStats(tx, request.ReceiverId, request.Type, true)
+	err = updateStats(tx, request.ReceiverUuid, request.FeedbackType, true)
 	if err != nil {
 		return 0, err
 	}
@@ -199,7 +241,7 @@ func (r *mysqlRepository) Create(request *repository.FeedbackRequest) (int, erro
 	return int(lastInsertedId), nil
 }
 
-func (r *mysqlRepository) Update(id int, request *repository.FeedbackRequest) error {
+func (r *mysqlRepository) Update(id int, request *repository.UpdateRequest) error {
 	tx, err := r.db.Begin()
 	log.Println("transaction start")
 	if err != nil {
@@ -207,6 +249,7 @@ func (r *mysqlRepository) Update(id int, request *repository.FeedbackRequest) er
 	}
 	defer func() {
 		if err != nil {
+			log.Println(err.Error())
 			log.Println("rollback")
 			tx.Rollback()
 			return
@@ -215,60 +258,35 @@ func (r *mysqlRepository) Update(id int, request *repository.FeedbackRequest) er
 		err = tx.Commit()
 	}()
 
-	const queryTemplate string = "UPDATE feedbacks SET parent_id=%d, sender_id=%d, receiver_id=%d, trade_id=%d, message=\"%s\", type=\"%s\", created_at=\"%s\", updated_at=NOW() WHERE id=%d"
+	const queryTemplate string = "UPDATE feedbacks SET message=\"%s\", feedback_type=\"%s\", updated_at=NOW() WHERE id=%d"
 
 	feedback, err := r.FindByID(id)
 	if err != nil {
 		return err
 	}
 
-	if request.ParentId != 0 {
-		feedback.ParentId.Int64 = int64(request.ParentId)
-	}
-
-	if request.SenderId != 0 {
-		feedback.SenderId = request.SenderId
-	}
-
-	if request.ReceiverId != 0 {
-		feedback.ReceiverId = request.ReceiverId
-	}
-
-	if request.TradeId != 0 {
-		feedback.TradeId = request.TradeId
-	}
-
 	if request.Message != "" {
 		feedback.Message = request.Message
 	}
 
-	if request.Type != "" && request.Type != feedback.Type {
-		err = updateStats(tx, id, feedback.Type, false)
+	if request.FeedbackType != "" && request.FeedbackType != feedback.FeedbackType {
+		err = updateStats(tx, feedback.ReceiverUuid, feedback.FeedbackType, false)
 		if err != nil {
 			return err
 		}
 
-		err = updateStats(tx, id, request.Type, true)
+		err = updateStats(tx, feedback.ReceiverUuid, request.FeedbackType, true)
 		if err != nil {
 			return err
 		}
 
-		feedback.Type = request.Type
-	}
-
-	if request.CreatedAt != "" {
-		feedback.CreatedAt = request.CreatedAt
+		feedback.FeedbackType = request.FeedbackType
 	}
 
 	sql := fmt.Sprintf(
 		queryTemplate,
-		feedback.ParentId.Int64,
-		feedback.SenderId,
-		feedback.ReceiverId,
-		feedback.TradeId,
 		feedback.Message,
-		feedback.Type,
-		feedback.CreatedAt,
+		feedback.FeedbackType,
 		id,
 	)
 	log.Println(sql)
@@ -289,6 +307,7 @@ func (r *mysqlRepository) Delete(id int) error {
 	}
 	defer func() {
 		if err != nil {
+			log.Println(err.Error())
 			log.Println("rollback")
 			tx.Rollback()
 			return
@@ -310,7 +329,7 @@ func (r *mysqlRepository) Delete(id int) error {
 	)
 	log.Println(sql)
 
-	err = updateStats(tx, feedback.ReceiverId, feedback.Type, false)
+	err = updateStats(tx, feedback.ReceiverUuid, feedback.FeedbackType, false)
 	if err != nil {
 		return err
 	}
@@ -323,25 +342,25 @@ func (r *mysqlRepository) Delete(id int) error {
 	return nil
 }
 
-func createStats(tx *sql.Tx, userId int) error {
+func createStats(tx *sql.Tx, userUuid string) error {
 	// TODO: increase appropriate field
 	log.Println("checking for stats")
 
-	row := tx.QueryRow("SELECT user_id FROM feedback_stats WHERE user_id=?", userId)
-	var dbData int
+	row := tx.QueryRow("SELECT user_uuid FROM feedback_stats WHERE user_id=?", userUuid)
+	var dbData string
 	row.Scan(&dbData)
-	if dbData == userId {
+	if dbData == userUuid {
 		log.Println("have found")
 		return nil
 	}
 
 	log.Println("didn't find")
 
-	const queryTemplate string = "INSERT INTO feedback_stats (user_id) VALUES(%d)"
+	const queryTemplate string = "INSERT INTO feedback_stats (user_uuid) VALUES(UUID_TO_BIN('%s'))"
 
 	sql := fmt.Sprintf(
 		queryTemplate,
-		userId,
+		userUuid,
 	)
 	log.Println(sql)
 
@@ -353,19 +372,19 @@ func createStats(tx *sql.Tx, userId int) error {
 	return nil
 }
 
-func updateStats(tx *sql.Tx, userId int, feedbackType string, isIncrease bool) error {
+func updateStats(tx *sql.Tx, userUuid string, feedbackType string, isIncrease bool) error {
 	var queryTemplate string
 	if isIncrease {
-		queryTemplate = "UPDATE feedback_stats SET %s = %s + 1 WHERE user_id=%d"
+		queryTemplate = "UPDATE feedback_stats SET %s = %s + 1 WHERE user_uuid=UUID_TO_BIN('%s')"
 	} else {
-		queryTemplate = "UPDATE feedback_stats SET %s = %s - 1 WHERE user_id=%d"
+		queryTemplate = "UPDATE feedback_stats SET %s = %s - 1 WHERE user_uuid=UUID_TO_BIN('%s')"
 	}
 
 	sql := fmt.Sprintf(
 		queryTemplate,
 		feedbackType,
 		feedbackType,
-		userId,
+		userUuid,
 	)
 	log.Println(sql)
 

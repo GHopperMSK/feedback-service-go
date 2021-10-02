@@ -61,90 +61,37 @@ func Consume(ctx context.Context, repo repository.Repository) {
 }
 
 func CreateFeedback(payload json.RawMessage, repo repository.Repository) {
-	var inputData CreateRequest
-	err := json.Unmarshal(payload, &inputData)
+	var request repository.CreateRequest
+	err := json.Unmarshal(payload, &request)
 	if err != nil {
 		panic(err.Error())
 	}
 
-	request := repository.FeedbackRequest{
-		ParentId:   inputData.ParentId,
-		SenderId:   inputData.SenderId,
-		ReceiverId: inputData.ReceiverId,
-		TradeId:    inputData.TradeId,
-		Message:    inputData.Message,
-		Type:       inputData.Type,
-		CreatedAt:  inputData.CreatedAt,
-	}
-
-	if len(request.Validate()) == 0 {
-		repo.Create(&request)
-	} else {
-		log.Println("request validation error")
-	}
+	repo.Create(&request)
 }
 
 func UpdateFeedback(payload json.RawMessage, repo repository.Repository) {
-	var inputData UpdateRequest
-	err := json.Unmarshal(payload, &inputData)
+	var request repository.UpdateRequest
+	err := json.Unmarshal(payload, &request)
 	if err != nil {
 		panic(err.Error())
 	}
 
-	request := repository.FeedbackRequest{
-		ParentId:   inputData.ParentId,
-		SenderId:   inputData.SenderId,
-		ReceiverId: inputData.ReceiverId,
-		TradeId:    inputData.TradeId,
-		Message:    inputData.Message,
-		Type:       inputData.Type,
-		CreatedAt:  inputData.CreatedAt,
-	}
-
-	if len(request.Validate()) == 0 {
-		repo.Update(inputData.Id, &request)
-	} else {
-		log.Println("request validation error")
-	}
+	repo.Update(request.FeedbackId, &request)
 }
 
 func DeleteFeedback(payload json.RawMessage, repo repository.Repository) {
-	var inputData DeleteRequest
-	err := json.Unmarshal(payload, &inputData)
+	var request repository.DeleteRequest
+	err := json.Unmarshal(payload, &request)
 	if err != nil {
 		panic(err.Error())
 	}
 
-	repo.Delete(inputData.Id)
+	repo.Delete(request.FeedbackId)
 }
 
 type KafkaRequest struct {
-	Action  string
-	Version string
-	Payload json.RawMessage
-}
-
-type CreateRequest struct {
-	ParentId   int `json:"parent_id"`
-	SenderId   int `json:"sender_id"`
-	ReceiverId int `json:"receiver_id"`
-	TradeId    int `json:"trade_id"`
-	Message    string
-	Type       string
-	CreatedAt  string `json:"created_at"`
-}
-
-type UpdateRequest struct {
-	Id         int
-	ParentId   int `json:"parent_id"`
-	SenderId   int `json:"sender_id"`
-	ReceiverId int `json:"receiver_id"`
-	TradeId    int `json:"trade_id"`
-	Message    string
-	Type       string
-	CreatedAt  string `json:"created_at"`
-}
-
-type DeleteRequest struct {
-	Id int
+	Action  string          `json:"action"`
+	Version string          `json:"version"`
+	Payload json.RawMessage `json:"payload"`
 }

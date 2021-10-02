@@ -8,6 +8,39 @@ import (
 	"time"
 )
 
+type CreateRequest struct {
+	ParentId                      int    `json:"parent_id"`
+	SenderUuid                    string `json:"sender_uuid"`
+	SenderName                    string `json:"sender_name"`
+	SenderAvatar                  string `json:"sender_avatar"`
+	ReceiverUuid                  string `json:"receiver_uuid"`
+	ReceiverName                  string `json:"receiver_name"`
+	ReceiverAvatar                string `json:"receiver_avatar"`
+	OfferHash                     string `json:"offer_hash"`
+	OfferAthorized                bool   `json:"offer_authorized"`
+	OfferOwnerUuid                string `json:"offer_owner_uuid"`
+	OfferType                     string `json:"offer_type"`
+	OfferPaymentMethod            string `json:"offer_payment_method"`
+	OfferPaymentMethodSlug        string `json:"offer_payment_method_slug"`
+	OfferCurrencyCode             string `json:"offer_currency_code"`
+	TradeHash                     string `json:"trade_hash"`
+	TradeFiatAmountRequestedInUsd string `json:"trade_fiat_amount_requested_in_usd"`
+	TradeStatus                   string `json:"trade_status"`
+	Message                       string `json:"message"`
+	FeedbackType                  string `json:"feedback_type"`
+	CreatedAt                     string `json:"created_at"`
+}
+
+type UpdateRequest struct {
+	FeedbackId   int    `json:"feedback_id"`
+	Message      string `json:"message"`
+	FeedbackType string `json:"feedback_type"`
+}
+
+type DeleteRequest struct {
+	FeedbackId int `json:"feedback_id"`
+}
+
 type FeedbackRequest struct {
 	ParentId   int `json:"parent_id"`
 	SenderId   int `json:"sender_id"`
@@ -59,9 +92,9 @@ type Repository interface {
 	GetDB() *sql.DB
 	Close()
 	FindByID(id int) (*Feedback, error)
-	Find(filter *FeedbackFilter) (*FeedbackResponse, error)
-	Create(request *FeedbackRequest) (int, error)
-	Update(id int, request *FeedbackRequest) error
+	Find(filter *RequestFilter) (*FeedbackResponse, error)
+	Create(request *CreateRequest) (int, error)
+	Update(id int, request *UpdateRequest) error
 	Delete(id int) error
 }
 
@@ -111,16 +144,29 @@ func (ni *NullString) MarshalJSON() ([]byte, error) {
 }
 
 type Feedback struct {
-	ID         int       `json:"id"`
-	ParentId   NullInt64 `json:"parent_id"`
-	SenderId   int       `json:"sender_id"`
-	ReceiverId int       `json:"receiver_id"`
-	TradeId    int       `json:"trade_id"`
-	Message    string
-	Type       string
-	CreatedAt  string     `json:"created_at"`
-	UpdatedAt  string     `json:"updated_at"`
-	DeletedAt  NullString `json:"deleted_at"`
+	ID                            int        `json:"id"`
+	ParentId                      NullInt64  `json:"parent_id"`
+	SenderUuid                    string     `json:"sender_uuid"`
+	SenderName                    string     `json:"sender_name"`
+	SenderAvatar                  string     `json:"sender_avatar"`
+	ReceiverUuid                  string     `json:"receiver_uuid"`
+	ReceiverName                  string     `json:"receiver_name"`
+	ReceiverAvatar                string     `json:"receiver_avatar"`
+	OfferHash                     string     `json:"offer_hash"`
+	OfferAthorized                bool       `json:"offer_authorized"`
+	OfferOwnerUuid                string     `json:"offer_owner_uuid"`
+	OfferType                     string     `json:"offer_type"`
+	OfferPaymentMethod            string     `json:"offer_payment_method"`
+	OfferPaymentMethodSlug        string     `json:"offer_payment_method_slug"`
+	OfferCurrencyCode             string     `json:"offer_currency_code"`
+	TradeHash                     string     `json:"trade_hash"`
+	TradeFiatAmountRequestedInUsd string     `json:"trade_fiat_amount_requested_in_usd"`
+	TradeStatus                   string     `json:"trade_status"`
+	Message                       string     `json:"message"`
+	FeedbackType                  string     `json:"feedback_type"`
+	CreatedAt                     string     `json:"created_at"`
+	UpdatedAt                     string     `json:"updated_at"`
+	DeletedAt                     NullString `json:"deleted_at"`
 }
 
 type FeedbackResponse struct {
@@ -130,11 +176,11 @@ type FeedbackResponse struct {
 	Limit  int         `json:"limit"`
 }
 
-type FeedbackFilter struct {
-	SenderId    int  `json:"sender_id"`
-	ReceiverId  int  `json:"receiver_id"`
-	TradeId     int  `json:"trade_id"`
-	WithTrashed bool `json:"with_trashed"`
-	Offset      int
-	Limit       int
+type RequestFilter struct {
+	SenderUuid   string `json:"sender_uuid"`
+	ReceiverUuid string `json:"receiver_uuid"`
+	TradeHash    string `json:"trade_hash"`
+	WithTrashed  bool   `json:"with_trashed"`
+	Offset       int
+	Limit        int
 }

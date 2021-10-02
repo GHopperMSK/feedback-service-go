@@ -22,7 +22,7 @@ services:
   #     - feedback_network
 
   db:
-    image: mysql:5.7
+    image: mysql:8
     container_name: db
     restart: "no"
     volumes:
@@ -35,7 +35,7 @@ services:
       MYSQL_ROOT_PASSWORD: secret
       MYSQL_DATABASE: feedback_service
       MYSQL_USER: db_user
-      MYSQL_PASSWORD: secret2
+      MYSQL_PASSWORD: secret
     command: --init-file /data/application/init.sql
     networks:
       - feedback_network
