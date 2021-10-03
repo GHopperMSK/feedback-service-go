@@ -24,8 +24,5 @@ func main() {
 	router := mux.NewRouter().StrictSlash(true)
 	router.HandleFunc("/feedback/{id}", restHandler.GetFeedback).Methods("GET")
 	router.HandleFunc("/feedbacks", restHandler.GetFeedbacksByFilter).Methods("GET")
-	router.HandleFunc("/feedback", restHandler.CreateFeedback).Methods("POST")
-	router.HandleFunc("/feedback/{id}", restHandler.UpdateFeedback).Methods("PATCH")
-	router.HandleFunc("/feedback/{id}", restHandler.DeleteFeedback).Methods("DELETE")
 	log.Fatal(http.ListenAndServe(":8080", router))
 }

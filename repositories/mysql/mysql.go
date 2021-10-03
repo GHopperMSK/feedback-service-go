@@ -4,7 +4,10 @@ import (
 	"database/sql"
 	"fmt"
 	"log"
+	"os"
 	"strconv"
+
+	"github.com/joho/godotenv"
 
 	_ "github.com/go-sql-driver/mysql"
 
@@ -20,12 +23,24 @@ func (r *mysqlRepository) GetDB() *sql.DB {
 }
 
 func New() (repository.Repository, error) {
+	err := godotenv.Load(".env")
+	if err != nil {
+		panic(err.Error())
+	}
+
+	dbUser := os.Getenv("DB_USER")
+	dbPassword := os.Getenv("DB_PASSWORD")
+	dbHost := os.Getenv("DB_HOST")
+	dbPort := os.Getenv("DB_PORT")
+	dbName := os.Getenv("DB_NAME")
+
 	dsn := fmt.Sprintf(
-		"%s:%s@tcp(%s:3306)/%s",
-		"db_user",
-		"secret",
-		"localhost",
-		"feedback_service",
+		"%s:%s@tcp(%s:%s)/%s",
+		dbUser,
+		dbPassword,
+		dbHost,
+		dbPort,
+		dbName,
 	)
 
 	dbConnection, err := sql.Open("mysql", dsn)
@@ -241,7 +256,7 @@ func (r *mysqlRepository) Create(request *repository.CreateRequest) (int, error)
 	return int(lastInsertedId), nil
 }
 
-func (r *mysqlRepository) Update(id int, request *repository.UpdateRequest) error {
+func (r *mysqlRepository) Update(request *repository.UpdateRequest) error {
 	tx, err := r.db.Begin()
 	log.Println("transaction start")
 	if err != nil {
@@ -260,7 +275,7 @@ func (r *mysqlRepository) Update(id int, request *repository.UpdateRequest) erro
 
 	const queryTemplate string = "UPDATE feedbacks SET message=\"%s\", feedback_type=\"%s\", updated_at=NOW() WHERE id=%d"
 
-	feedback, err := r.FindByID(id)
+	feedback, err := r.FindByID(request.FeedbackId)
 	if err != nil {
 		return err
 	}
@@ -287,7 +302,7 @@ func (r *mysqlRepository) Update(id int, request *repository.UpdateRequest) erro
 		queryTemplate,
 		feedback.Message,
 		feedback.FeedbackType,
-		id,
+		request.FeedbackId,
 	)
 	log.Println(sql)
 
@@ -299,7 +314,7 @@ func (r *mysqlRepository) Update(id int, request *repository.UpdateRequest) erro
 	return nil
 }
 
-func (r *mysqlRepository) Delete(id int) error {
+func (r *mysqlRepository) Delete(request *repository.DeleteRequest) error {
 	tx, err := r.db.Begin()
 	log.Println("transaction start")
 	if err != nil {
@@ -316,16 +331,16 @@ func (r *mysqlRepository) Delete(id int) error {
 		err = tx.Commit()
 	}()
 
-	const queryTemplate string = "DELETE FROM feedbacks WHERE id=%d"
+	const queryTemplate string = "UPDATE feedbacks SET deleted_at=NOW() WHERE id=%d"
 
-	feedback, err := r.FindByID(id)
+	feedback, err := r.FindByID(request.FeedbackId)
 	if err != nil {
 		return err
 	}
 
 	sql := fmt.Sprintf(
 		queryTemplate,
-		id,
+		request.FeedbackId,
 	)
 	log.Println(sql)
 
@@ -343,12 +358,16 @@ func (r *mysqlRepository) Delete(id int) error {
 }
 
 func createStats(tx *sql.Tx, userUuid string) error {
-	// TODO: increase appropriate field
 	log.Println("checking for stats")
 
-	row := tx.QueryRow("SELECT user_uuid FROM feedback_stats WHERE user_id=?", userUuid)
+	// TODO: qoute param value
+	row := tx.QueryRow("SELECT BIN_TO_UUID(user_uuid) FROM feedback_stats WHERE BIN_TO_UUID(user_uuid)=?", userUuid)
 	var dbData string
-	row.Scan(&dbData)
+	err := row.Scan(&dbData)
+	if err != nil && err != sql.ErrNoRows {
+		return err
+	}
+
 	if dbData == userUuid {
 		log.Println("have found")
 		return nil
@@ -364,7 +383,7 @@ func createStats(tx *sql.Tx, userUuid string) error {
 	)
 	log.Println(sql)
 
-	_, err := tx.Exec(sql)
+	_, err = tx.Exec(sql)
 	if err != nil {
 		return err
 	}

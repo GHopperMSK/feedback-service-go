@@ -16,6 +16,12 @@ const (
 	brokerAddress = "kafka:9092"
 )
 
+type KafkaRequest struct {
+	Action  string          `json:"action"`
+	Version string          `json:"version"`
+	Payload json.RawMessage `json:"payload"`
+}
+
 func Consume(ctx context.Context, repo repository.Repository) {
 	// create a new logger that outputs to stdout
 	// and has the `kafka reader` prefix
@@ -26,7 +32,7 @@ func Consume(ctx context.Context, repo repository.Repository) {
 	r := kafka.NewReader(kafka.ReaderConfig{
 		Brokers: []string{brokerAddress},
 		Topic:   topic,
-		// GroupID: "feedback-group",
+		GroupID: "feedback-service-group",
 		// assign the logger to the reader
 		Logger: l,
 	})
@@ -77,7 +83,7 @@ func UpdateFeedback(payload json.RawMessage, repo repository.Repository) {
 		panic(err.Error())
 	}
 
-	repo.Update(request.FeedbackId, &request)
+	repo.Update(&request)
 }
 
 func DeleteFeedback(payload json.RawMessage, repo repository.Repository) {
@@ -87,11 +93,5 @@ func DeleteFeedback(payload json.RawMessage, repo repository.Repository) {
 		panic(err.Error())
 	}
 
-	repo.Delete(request.FeedbackId)
-}
-
-type KafkaRequest struct {
-	Action  string          `json:"action"`
-	Version string          `json:"version"`
-	Payload json.RawMessage `json:"payload"`
+	repo.Delete(&request)
 }

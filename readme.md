@@ -17,7 +17,7 @@ $ echo "{\"action\":\"create-action\",\"version\":\"v0.1\",\"payload\":{\"sender
 
 $ echo "{\"action\":\"update-action\",\"version\":\"v0.1\",\"payload\":{\"feedback_id\":1,\"message\":\"message1 NEW\",\"feedback_type\":\"POSITIVE\"}}" | kcat -P -b localhost:29092 -t test -p 0
 
-$ echo "{\"action\":\"delete-action\",\"version\":\"v0.1\",\"payload\":{\"feedback_id\":4}}" | kcat -P -b localhost:29092 -t test -p 0
+$ echo "{\"action\":\"delete-action\",\"version\":\"v0.1\",\"payload\":{\"feedback_id\":2}}" | kcat -P -b localhost:29092 -t test -p 0
 
 ## Run tests
 

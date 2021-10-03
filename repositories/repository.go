@@ -94,8 +94,8 @@ type Repository interface {
 	FindByID(id int) (*Feedback, error)
 	Find(filter *RequestFilter) (*FeedbackResponse, error)
 	Create(request *CreateRequest) (int, error)
-	Update(id int, request *UpdateRequest) error
-	Delete(id int) error
+	Update(request *UpdateRequest) error
+	Delete(request *DeleteRequest) error
 }
 
 type NullInt64 sql.NullInt64

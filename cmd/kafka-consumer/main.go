@@ -8,6 +8,8 @@ import (
 	"os"
 	"time"
 
+	"github.com/joho/godotenv"
+
 	khandler "feedback-service-go/handlers/kafka"
 	mysql "feedback-service-go/repositories/mysql"
 
@@ -16,6 +18,15 @@ import (
 
 func main() {
 	log.Println("Start kafka consumer server")
+
+	err := godotenv.Load(".env")
+	if err != nil {
+		panic(err.Error())
+	}
+
+	topicName := os.Getenv("KAFKA_TOPIC_NAME")
+	topicGroupId := os.Getenv("KAFKA_GROUP_ID")
+	topicBrokers := os.Getenv("KAFKA_BROKER_ADDRESS")
 
 	repository, err := mysql.New()
 	if err != nil {
@@ -32,9 +43,9 @@ func main() {
 	// the groupID identifies the consumer and prevents
 	// it from receiving duplicate messages
 	r := kafka.NewReader(kafka.ReaderConfig{
-		Brokers: []string{"localhost:29092"},
-		Topic:   "test",
-		// GroupID: "feedback-group",
+		Brokers:     []string{topicBrokers},
+		Topic:       topicName,
+		GroupID:     topicGroupId,
 		Logger:      l,
 		MaxWait:     time.Duration(10000000000),
 		MaxAttempts: 10,

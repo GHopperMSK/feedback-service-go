@@ -32,10 +32,10 @@ services:
       - 3306:3306
     restart: always
     environment:
-      MYSQL_ROOT_PASSWORD: secret
-      MYSQL_DATABASE: feedback_service
-      MYSQL_USER: db_user
-      MYSQL_PASSWORD: secret
+      MYSQL_ROOT_PASSWORD: ${DB_ROOT_PASSWORD}
+      MYSQL_DATABASE: ${DB_NAME}
+      MYSQL_USER: ${DB_USER}
+      MYSQL_PASSWORD: ${DB_PASSWORD}
     command: --init-file /data/application/init.sql
     networks:
       - feedback_network
