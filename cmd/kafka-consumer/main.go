@@ -74,6 +74,9 @@ func main() {
 		case "delete-action":
 			// TODO: check for inputRequest.Version
 			go khandler.DeleteFeedback(inputRequest.Payload, repository)
+		case "change-trade-status-action":
+			// TODO: check for inputRequest.Version
+			go khandler.ChangeTradeStatus(inputRequest.Payload, repository)
 		default:
 			fmt.Println("got unknown action:", inputRequest.Action)
 		}

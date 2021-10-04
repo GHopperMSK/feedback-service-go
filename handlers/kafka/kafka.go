@@ -60,6 +60,9 @@ func Consume(ctx context.Context, repo repository.Repository) {
 		case "delete-action":
 			// TODO: check for inputRequest.Version
 			go DeleteFeedback(inputRequest.Payload, repo)
+		case "delete-offer-action":
+			// TODO: check for inputRequest.Version
+			go DeleteOffer(inputRequest.Payload, repo)
 		default:
 			fmt.Println("got unknown action:", inputRequest.Action)
 		}
@@ -94,4 +97,24 @@ func DeleteFeedback(payload json.RawMessage, repo repository.Repository) {
 	}
 
 	repo.Delete(&request)
+}
+
+func DeleteOffer(payload json.RawMessage, repo repository.Repository) {
+	var request repository.DeleteOfferRequest
+	err := json.Unmarshal(payload, &request)
+	if err != nil {
+		panic(err.Error())
+	}
+
+	repo.DeleteOffer(&request)
+}
+
+func ChangeTradeStatus(payload json.RawMessage, repo repository.Repository) {
+	var request repository.ChangeTradeStatusRequest
+	err := json.Unmarshal(payload, &request)
+	if err != nil {
+		panic(err.Error())
+	}
+
+	repo.ChangeTradeStatus(&request)
 }

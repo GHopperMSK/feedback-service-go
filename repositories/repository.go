@@ -41,6 +41,16 @@ type DeleteRequest struct {
 	FeedbackId int `json:"feedback_id"`
 }
 
+type DeleteOfferRequest struct {
+	OfferHash string `json:"offer_hash"`
+	DeletedAt string `json:"deleted_at"`
+}
+
+type ChangeTradeStatusRequest struct {
+	TradeHash   string `json:"trade_hash"`
+	TradeStatus string `json:"trade_status"`
+}
+
 type FeedbackRequest struct {
 	ParentId   int `json:"parent_id"`
 	SenderId   int `json:"sender_id"`
@@ -96,6 +106,8 @@ type Repository interface {
 	Create(request *CreateRequest) (int, error)
 	Update(request *UpdateRequest) error
 	Delete(request *DeleteRequest) error
+	DeleteOffer(request *DeleteOfferRequest) error
+	ChangeTradeStatus(request *ChangeTradeStatusRequest) error
 }
 
 type NullInt64 sql.NullInt64
@@ -159,6 +171,7 @@ type Feedback struct {
 	OfferPaymentMethod            string     `json:"offer_payment_method"`
 	OfferPaymentMethodSlug        string     `json:"offer_payment_method_slug"`
 	OfferCurrencyCode             string     `json:"offer_currency_code"`
+	OfferDeletedAt                NullString `json:"offer_deleted_at"`
 	TradeHash                     string     `json:"trade_hash"`
 	TradeFiatAmountRequestedInUsd string     `json:"trade_fiat_amount_requested_in_usd"`
 	TradeStatus                   string     `json:"trade_status"`

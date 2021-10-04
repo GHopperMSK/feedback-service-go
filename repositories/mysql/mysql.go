@@ -357,6 +357,96 @@ func (r *mysqlRepository) Delete(request *repository.DeleteRequest) error {
 	return nil
 }
 
+func (r *mysqlRepository) DeleteOffer(request *repository.DeleteOfferRequest) error {
+	tx, err := r.db.Begin()
+	log.Println("transaction start")
+	if err != nil {
+		return err
+	}
+	defer func() {
+		if err != nil {
+			log.Println(err.Error())
+			log.Println("rollback")
+			tx.Rollback()
+			return
+		}
+		log.Println("commit")
+		err = tx.Commit()
+	}()
+
+	const queryTemplate string = "UPDATE feedbacks SET offer_deleted_at='%s' WHERE id=%d"
+
+	sql := fmt.Sprintf("SELECT id FROM feedbacks WHERE offer_hash='%s'", request.OfferHash)
+	log.Println(sql)
+
+	results, err := r.db.Query(sql)
+	if err != nil {
+		return err
+	}
+
+	var feedbackId int
+	for results.Next() {
+		err = results.Scan(&feedbackId)
+		if err != nil {
+			return err
+		}
+
+		sql = fmt.Sprintf(queryTemplate, request.DeletedAt, feedbackId)
+		log.Println(sql)
+		_, err = r.db.Exec(sql)
+		if err != nil {
+			return err
+		}
+	}
+
+	return nil
+}
+
+func (r *mysqlRepository) ChangeTradeStatus(request *repository.ChangeTradeStatusRequest) error {
+	tx, err := r.db.Begin()
+	log.Println("transaction start")
+	if err != nil {
+		return err
+	}
+	defer func() {
+		if err != nil {
+			log.Println(err.Error())
+			log.Println("rollback")
+			tx.Rollback()
+			return
+		}
+		log.Println("commit")
+		err = tx.Commit()
+	}()
+
+	const queryTemplate string = "UPDATE feedbacks SET trade_status='%s' WHERE id=%d"
+
+	sql := fmt.Sprintf("SELECT id FROM feedbacks WHERE trade_hash='%s'", request.TradeHash)
+	log.Println(sql)
+
+	results, err := r.db.Query(sql)
+	if err != nil {
+		return err
+	}
+
+	var feedbackId int
+	for results.Next() {
+		err = results.Scan(&feedbackId)
+		if err != nil {
+			return err
+		}
+
+		sql = fmt.Sprintf(queryTemplate, request.TradeStatus, feedbackId)
+		log.Println(sql)
+		_, err = r.db.Exec(sql)
+		if err != nil {
+			return err
+		}
+	}
+
+	return nil
+}
+
 func createStats(tx *sql.Tx, userUuid string) error {
 	log.Println("checking for stats")
 
