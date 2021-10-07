@@ -192,6 +192,7 @@ type FeedbackResponse struct {
 type RequestFilter struct {
 	SenderUuid   string `json:"sender_uuid"`
 	ReceiverUuid string `json:"receiver_uuid"`
+	OfferHash    string `json:"offer_hash"`
 	TradeHash    string `json:"trade_hash"`
 	WithTrashed  bool   `json:"with_trashed"`
 	Offset       int

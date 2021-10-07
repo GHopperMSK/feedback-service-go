@@ -114,6 +114,9 @@ func (r *mysqlRepository) Find(filter *repository.RequestFilter) (*repository.Fe
 	if filter.ReceiverUuid != "" {
 		sql += fmt.Sprintf(" AND receiver_uuid = UUID_TO_BIN('%s')", filter.ReceiverUuid)
 	}
+	if filter.OfferHash != "" {
+		sql += fmt.Sprintf(" AND offer_hash = UUID_TO_BIN('%s')", filter.OfferHash)
+	}
 	if filter.TradeHash != "" {
 		sql += fmt.Sprintf(" AND trade_hash = UUID_TO_BIN('%s')", filter.TradeHash)
 	}
@@ -126,7 +129,7 @@ func (r *mysqlRepository) Find(filter *repository.RequestFilter) (*repository.Fe
 		return nil, err
 	}
 
-	sql += fmt.Sprintf(" LIMIT %d, %d", filter.Offset, filter.Limit)
+	sql += fmt.Sprintf(" ORDER BY created_at DESC LIMIT %d, %d", filter.Offset, filter.Limit)
 
 	results, err := r.db.Query(fmt.Sprintf(sql, "*"))
 	if err != nil {

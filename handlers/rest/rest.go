@@ -71,13 +71,12 @@ func (h *restHandler) GetById(id int) (*repository.Feedback, error) {
 }
 
 func getFilter(query url.Values) *repository.RequestFilter {
-	var err error
-
 	filter := repository.RequestFilter{}
 
 	filter.SenderUuid = query.Get("sender_uuid")
 	filter.ReceiverUuid = query.Get("receiver_uuid")
-	filter.TradeHash = query.Get("trade_hase")
+	filter.OfferHash = query.Get("offer_hash")
+	filter.TradeHash = query.Get("trade_hash")
 	inputWithTrashed := query.Get("with_trashed")
 	if inputWithTrashed == "1" {
 		filter.WithTrashed = true
@@ -85,9 +84,15 @@ func getFilter(query url.Values) *repository.RequestFilter {
 		filter.WithTrashed = false
 	}
 
-	filter.Offset, err = getIntParam(query, "offset", 0)
-	if err != nil {
-		panic(err.Error())
+	inputOffset := query.Get("offset")
+	if inputOffset == "" {
+		filter.Offset = 0
+	} else {
+		intVal, err := strconv.Atoi(inputOffset)
+		if err != nil {
+			panic(err.Error())
+		}
+		filter.Offset = intVal
 	}
 
 	intVal := 0
@@ -104,19 +109,6 @@ func getFilter(query url.Values) *repository.RequestFilter {
 	filter.Limit = min(intVal, maxLimit)
 
 	return &filter
-}
-
-func getIntParam(query url.Values, paramName string, defaultValue int) (int, error) {
-	inputSenderId := query.Get(paramName)
-	if inputSenderId != "" {
-		intVal, err := strconv.Atoi(inputSenderId)
-		if err != nil {
-			return 0, err
-		}
-
-		return intVal, nil
-	}
-	return defaultValue, nil
 }
 
 func min(x, y int) int {

@@ -27,7 +27,9 @@ CREATE TABLE IF NOT EXISTS feedbacks(
     updated_at TIMESTAMP DEFAULT NOW() ON UPDATE CURRENT_TIMESTAMP,
     deleted_at TIMESTAMP NULL DEFAULT NULL,
     PRIMARY KEY (id),
-    FOREIGN KEY (parent_id) REFERENCES feedbacks (id) ON DELETE CASCADE
+    FOREIGN KEY (parent_id) REFERENCES feedbacks (id) ON DELETE CASCADE,
+    INDEX offer_hash_idx (offer_hash),
+    INDEX trade_hash_idx (trade_hash)
 );
 
 CREATE TABLE IF NOT EXISTS feedback_stats(

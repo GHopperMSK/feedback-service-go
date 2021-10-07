@@ -21,7 +21,7 @@ $ echo "{\"action\":\"delete-action\",\"version\":\"v0.1\",\"payload\":{\"feedba
 
 $ echo "{\"action\":\"delete-offer-action\",\"version\":\"v0.1\",\"payload\":{\"offer_hash\":"ksO3jso7aDi", \"deleted_at\":\"2014-11-12 11:45:26.37\"}}" | kcat -P -b localhost:29092 -t test -p 0
 
-$ echo "{\"action\":\"trade-change-status-action\",\"version\":\"v0.1\",\"payload\":{\"trade_hash\":"ksO3jso7aDi", \"status\":\"DISPUTED\"}}" | kcat -P -b localhost:29092 -t test -p 0
+$ echo "{\"action\":\"change-trade-status-action\",\"version\":\"v0.1\",\"payload\":{\"trade_hash\":"ksO3jso7aDi", \"status\":\"DISPUTED\"}}" | kcat -P -b localhost:29092 -t test -p 0
 
 ## Run tests
 
