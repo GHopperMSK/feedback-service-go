@@ -155,7 +155,7 @@ func (r *mysqlRepository) Find(filter *repository.RequestFilter) (*repository.Fe
 			&feedback.OfferPaymentMethod,
 			&feedback.OfferPaymentMethodSlug,
 			&feedback.OfferCurrencyCode,
-			&feedback.DeletedAt,
+			&feedback.OfferDeletedAt,
 			&feedback.TradeHash,
 			&feedback.TradeFiatAmountRequestedInUsd,
 			&feedback.TradeStatus,
