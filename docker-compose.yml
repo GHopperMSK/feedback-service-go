@@ -1,26 +1,6 @@
 version: "3"
 services:
 
-  # app:
-  #   build: .
-  #   container_name: app
-  #   restart: "no"
-  #   volumes:
-  #     - .:/go/src/feedback-service-go
-  #   ports:
-  #     - 8080:8080
-  #   working_dir: /go/src/feedback-service-go
-  #   depends_on:
-  #     - create-topics
-  #     - db
-  #   environment:
-  #     MYSQL_ROOT_PASSWORD: secret
-  #     MYSQL_DATABASE: feedback_service
-  #     MYSQL_USER: db_user
-  #     MYSQL_PASSWORD: secret
-  #   networks:
-  #     - feedback_network
-
   db:
     image: mysql:8
     container_name: db
