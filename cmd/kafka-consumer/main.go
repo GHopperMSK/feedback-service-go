@@ -25,7 +25,7 @@ func main() {
 	}
 
 	topicName := os.Getenv("KAFKA_TOPIC_NAME")
-	topicGroupId := os.Getenv("KAFKA_GROUP_ID")
+	// topicGroupId := os.Getenv("KAFKA_GROUP_ID")
 	topicBrokers := os.Getenv("KAFKA_BROKER_ADDRESS")
 
 	repository, err := mysql.New()
@@ -43,9 +43,9 @@ func main() {
 	// the groupID identifies the consumer and prevents
 	// it from receiving duplicate messages
 	r := kafka.NewReader(kafka.ReaderConfig{
-		Brokers:     []string{topicBrokers},
-		Topic:       topicName,
-		GroupID:     topicGroupId,
+		Brokers: []string{topicBrokers},
+		Topic:   topicName,
+		// GroupID:     topicGroupId,
 		Logger:      l,
 		MaxWait:     time.Duration(10000000000),
 		MaxAttempts: 10,
@@ -71,9 +71,6 @@ func main() {
 		case "update-action":
 			// TODO: check for inputRequest.Version
 			go khandler.UpdateFeedback(inputRequest.Payload, repository)
-		case "delete-action":
-			// TODO: check for inputRequest.Version
-			go khandler.DeleteFeedback(inputRequest.Payload, repository)
 		case "delete-offer-action":
 			// TODO: check for inputRequest.Version
 			go khandler.DeleteOffer(inputRequest.Payload, repository)

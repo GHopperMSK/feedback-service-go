@@ -13,7 +13,7 @@ import (
 
 const (
 	topic         = "test"
-	brokerAddress = "kafka:9092"
+	brokerAddress = "localhost:9092"
 )
 
 type KafkaRequest struct {
@@ -23,6 +23,10 @@ type KafkaRequest struct {
 }
 
 func Consume(ctx context.Context, repo repository.Repository) {
+	topicName := os.Getenv("KAFKA_TOPIC_NAME")
+	// topicGroupId := os.Getenv("KAFKA_GROUP_ID")
+	topicBrokers := os.Getenv("KAFKA_BROKER_ADDRESS")
+
 	// create a new logger that outputs to stdout
 	// and has the `kafka reader` prefix
 	l := log.New(os.Stdout, "kafka reader: ", 0)
@@ -30,9 +34,9 @@ func Consume(ctx context.Context, repo repository.Repository) {
 	// the groupID identifies the consumer and prevents
 	// it from receiving duplicate messages
 	r := kafka.NewReader(kafka.ReaderConfig{
-		Brokers: []string{brokerAddress},
-		Topic:   topic,
-		GroupID: "feedback-service-group",
+		Brokers: []string{topicBrokers},
+		Topic:   topicName,
+		// GroupID: topicGroupId,
 		// assign the logger to the reader
 		Logger: l,
 	})
@@ -57,9 +61,6 @@ func Consume(ctx context.Context, repo repository.Repository) {
 		case "update-action":
 			// TODO: check for inputRequest.Version
 			go UpdateFeedback(inputRequest.Payload, repo)
-		case "delete-action":
-			// TODO: check for inputRequest.Version
-			go DeleteFeedback(inputRequest.Payload, repo)
 		case "delete-offer-action":
 			// TODO: check for inputRequest.Version
 			go DeleteOffer(inputRequest.Payload, repo)
@@ -87,16 +88,6 @@ func UpdateFeedback(payload json.RawMessage, repo repository.Repository) {
 	}
 
 	repo.Update(&request)
-}
-
-func DeleteFeedback(payload json.RawMessage, repo repository.Repository) {
-	var request repository.DeleteRequest
-	err := json.Unmarshal(payload, &request)
-	if err != nil {
-		panic(err.Error())
-	}
-
-	repo.Delete(&request)
 }
 
 func DeleteOffer(payload json.RawMessage, repo repository.Repository) {

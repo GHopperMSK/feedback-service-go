@@ -64,7 +64,7 @@ func (r *mysqlRepository) Close() {
 }
 
 func (r *mysqlRepository) FindByID(id int) (*repository.Feedback, error) {
-	const queryTemplate string = `SELECT id, parent_id, BIN_TO_UUID(sender_uuid), sender_name, sender_avater, BIN_TO_UUID(receiver_uuid), receiver_name, receiver_avater, offer_hash, offer_authorized, BIN_TO_UUID(offer_owner_uuid), offer_type, offer_payment_method, offer_payment_method_slug, offer_currency_code, offer_deleted_at, trade_hash, trade_fiat_amount_requested_in_usd, trade_status, message, feedback_type, created_at, updated_at, deleted_at FROM feedbacks WHERE id = ? AND deleted_at IS NULL`
+	const queryTemplate string = `SELECT id, parent_id, BIN_TO_UUID(sender_uuid), sender_name, sender_avater, BIN_TO_UUID(receiver_uuid), receiver_name, receiver_avater, offer_hash, offer_authorized, BIN_TO_UUID(offer_owner_uuid), offer_type, offer_payment_method, offer_payment_method_slug, offer_fiat_code, offer_crypto_code, offer_deleted_at, trade_hash, trade_fiat_amount_requested_in_usd, trade_status, message, feedback_type, created_at, updated_at, deleted_at FROM feedbacks WHERE id = ? AND deleted_at IS NULL`
 
 	var feedback repository.Feedback
 	result := r.db.QueryRow(queryTemplate, id)
@@ -83,7 +83,8 @@ func (r *mysqlRepository) FindByID(id int) (*repository.Feedback, error) {
 		&feedback.OfferType,
 		&feedback.OfferPaymentMethod,
 		&feedback.OfferPaymentMethodSlug,
-		&feedback.OfferCurrencyCode,
+		&feedback.OfferFiatCode,
+		&feedback.OfferCryptoCode,
 		&feedback.DeletedAt,
 		&feedback.TradeHash,
 		&feedback.TradeFiatAmountRequestedInUsd,
@@ -154,7 +155,8 @@ func (r *mysqlRepository) Find(filter *repository.RequestFilter) (*repository.Fe
 			&feedback.OfferType,
 			&feedback.OfferPaymentMethod,
 			&feedback.OfferPaymentMethodSlug,
-			&feedback.OfferCurrencyCode,
+			&feedback.OfferFiatCode,
+			&feedback.OfferCryptoCode,
 			&feedback.OfferDeletedAt,
 			&feedback.TradeHash,
 			&feedback.TradeFiatAmountRequestedInUsd,
@@ -199,7 +201,7 @@ func (r *mysqlRepository) Create(request *repository.CreateRequest) (int, error)
 		err = tx.Commit()
 	}()
 
-	const queryTemplate string = "INSERT INTO feedbacks(parent_id, sender_uuid, sender_name, sender_avater, receiver_uuid, receiver_name, receiver_avater, offer_hash, offer_authorized, offer_owner_uuid, offer_type, offer_payment_method, offer_payment_method_slug, offer_currency_code, trade_hash, trade_fiat_amount_requested_in_usd, trade_status, message, feedback_type, created_at) VALUES(%s, UUID_TO_BIN('%s'), '%s', '%s', UUID_TO_BIN('%s'), '%s', '%s', '%s', %t, UUID_TO_BIN('%s'), '%s', '%s', '%s', '%s', '%s', '%s', '%s', '%s', '%s', %s)"
+	const queryTemplate string = "INSERT INTO feedbacks(parent_id, sender_uuid, sender_name, sender_avater, receiver_uuid, receiver_name, receiver_avater, offer_hash, offer_authorized, offer_owner_uuid, offer_type, offer_payment_method, offer_payment_method_slug, offer_fiat_code, offer_crypto_code, trade_hash, trade_fiat_amount_requested_in_usd, trade_status, message, feedback_type, created_at) VALUES(%s, UUID_TO_BIN('%s'), '%s', '%s', UUID_TO_BIN('%s'), '%s', '%s', '%s', %t, UUID_TO_BIN('%s'), '%s', '%s', '%s', '%s', '%s', '%s', '%s', '%s', '%s', '%s', %s)"
 
 	parentId := "NULL"
 	if request.ParentId > 0 {
@@ -226,7 +228,8 @@ func (r *mysqlRepository) Create(request *repository.CreateRequest) (int, error)
 		request.OfferType,
 		request.OfferPaymentMethod,
 		request.OfferPaymentMethodSlug,
-		request.OfferCurrencyCode,
+		request.OfferFiatCode,
+		request.OfferCryptoCode,
 		request.TradeHash,
 		request.TradeFiatAmountRequestedInUsd,
 		request.TradeStatus,
@@ -276,12 +279,50 @@ func (r *mysqlRepository) Update(request *repository.UpdateRequest) error {
 		err = tx.Commit()
 	}()
 
-	const queryTemplate string = "UPDATE feedbacks SET message=\"%s\", feedback_type=\"%s\", updated_at=NOW() WHERE id=%d"
+	sql := fmt.Sprintf(
+		"SELECT id, parent_id, BIN_TO_UUID(sender_uuid), sender_name, sender_avater, BIN_TO_UUID(receiver_uuid), receiver_name, receiver_avater, offer_hash, offer_authorized, BIN_TO_UUID(offer_owner_uuid), offer_type, offer_payment_method, offer_payment_method_slug, offer_fiat_code, offer_crypto_code, offer_deleted_at, trade_hash, trade_fiat_amount_requested_in_usd, trade_status, message, feedback_type, created_at, updated_at, deleted_at FROM feedbacks WHERE sender_uuid = UUID_TO_BIN('%s') AND receiver_uuid = UUID_TO_BIN('%s') AND offer_payment_method_slug = '%s' AND offer_fiat_code = '%s'",
+		request.SenderUuid,
+		request.ReceiverUuid,
+		request.OfferPaymentMethodSlug,
+		request.OfferFiatCode,
+	)
+	log.Println(sql)
 
-	feedback, err := r.FindByID(request.FeedbackId)
+	var feedback repository.Feedback
+	result := r.db.QueryRow(sql)
+
+	err = result.Scan(
+		&feedback.ID,
+		&feedback.ParentId,
+		&feedback.SenderUuid,
+		&feedback.SenderName,
+		&feedback.SenderAvatar,
+		&feedback.ReceiverUuid,
+		&feedback.ReceiverName,
+		&feedback.ReceiverAvatar,
+		&feedback.OfferHash,
+		&feedback.OfferAthorized,
+		&feedback.OfferOwnerUuid,
+		&feedback.OfferType,
+		&feedback.OfferPaymentMethod,
+		&feedback.OfferPaymentMethodSlug,
+		&feedback.OfferFiatCode,
+		&feedback.OfferCryptoCode,
+		&feedback.DeletedAt,
+		&feedback.TradeHash,
+		&feedback.TradeFiatAmountRequestedInUsd,
+		&feedback.TradeStatus,
+		&feedback.Message,
+		&feedback.FeedbackType,
+		&feedback.CreatedAt,
+		&feedback.UpdatedAt,
+		&feedback.DeletedAt,
+	)
 	if err != nil {
 		return err
 	}
+
+	const queryTemplate string = "UPDATE feedbacks SET message=\"%s\", feedback_type=\"%s\", updated_at=NOW() WHERE id=%d"
 
 	if request.Message != "" {
 		feedback.Message = request.Message
@@ -301,56 +342,13 @@ func (r *mysqlRepository) Update(request *repository.UpdateRequest) error {
 		feedback.FeedbackType = request.FeedbackType
 	}
 
-	sql := fmt.Sprintf(
+	sql = fmt.Sprintf(
 		queryTemplate,
 		feedback.Message,
 		feedback.FeedbackType,
-		request.FeedbackId,
+		feedback.ID,
 	)
 	log.Println(sql)
-
-	_, err = r.db.Exec(sql)
-	if err != nil {
-		return err
-	}
-
-	return nil
-}
-
-func (r *mysqlRepository) Delete(request *repository.DeleteRequest) error {
-	tx, err := r.db.Begin()
-	log.Println("transaction start")
-	if err != nil {
-		return err
-	}
-	defer func() {
-		if err != nil {
-			log.Println(err.Error())
-			log.Println("rollback")
-			tx.Rollback()
-			return
-		}
-		log.Println("commit")
-		err = tx.Commit()
-	}()
-
-	const queryTemplate string = "UPDATE feedbacks SET deleted_at=NOW() WHERE id=%d"
-
-	feedback, err := r.FindByID(request.FeedbackId)
-	if err != nil {
-		return err
-	}
-
-	sql := fmt.Sprintf(
-		queryTemplate,
-		request.FeedbackId,
-	)
-	log.Println(sql)
-
-	err = updateStats(tx, feedback.ReceiverUuid, feedback.FeedbackType, false)
-	if err != nil {
-		return err
-	}
 
 	_, err = r.db.Exec(sql)
 	if err != nil {

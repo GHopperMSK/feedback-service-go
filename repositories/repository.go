@@ -22,7 +22,8 @@ type CreateRequest struct {
 	OfferType                     string `json:"offer_type"`
 	OfferPaymentMethod            string `json:"offer_payment_method"`
 	OfferPaymentMethodSlug        string `json:"offer_payment_method_slug"`
-	OfferCurrencyCode             string `json:"offer_currency_code"`
+	OfferFiatCode                 string `json:"offer_fiat_code"`
+	OfferCryptoCode               string `json:"offer_crypto_code"`
 	TradeHash                     string `json:"trade_hash"`
 	TradeFiatAmountRequestedInUsd string `json:"trade_fiat_amount_requested_in_usd"`
 	TradeStatus                   string `json:"trade_status"`
@@ -32,13 +33,12 @@ type CreateRequest struct {
 }
 
 type UpdateRequest struct {
-	FeedbackId   int    `json:"feedback_id"`
-	Message      string `json:"message"`
-	FeedbackType string `json:"feedback_type"`
-}
-
-type DeleteRequest struct {
-	FeedbackId int `json:"feedback_id"`
+	SenderUuid             string `json:"sender_uuid"`
+	ReceiverUuid           string `json:"receiver_uuid"`
+	OfferPaymentMethodSlug string `json:"offer_payment_method_slug"`
+	OfferFiatCode          string `json:"offer_fiat_code"`
+	Message                string `json:"message"`
+	FeedbackType           string `json:"feedback_type"`
 }
 
 type DeleteOfferRequest struct {
@@ -105,7 +105,6 @@ type Repository interface {
 	Find(filter *RequestFilter) (*FeedbackResponse, error)
 	Create(request *CreateRequest) (int, error)
 	Update(request *UpdateRequest) error
-	Delete(request *DeleteRequest) error
 	DeleteOffer(request *DeleteOfferRequest) error
 	ChangeTradeStatus(request *ChangeTradeStatusRequest) error
 }
@@ -170,7 +169,8 @@ type Feedback struct {
 	OfferType                     string     `json:"offer_type"`
 	OfferPaymentMethod            string     `json:"offer_payment_method"`
 	OfferPaymentMethodSlug        string     `json:"offer_payment_method_slug"`
-	OfferCurrencyCode             string     `json:"offer_currency_code"`
+	OfferFiatCode                 string     `json:"offer_fiat_code"`
+	OfferCryptoCode               string     `json:"offer_crypto_code"`
 	OfferDeletedAt                NullString `json:"offer_deleted_at"`
 	TradeHash                     string     `json:"trade_hash"`
 	TradeFiatAmountRequestedInUsd string     `json:"trade_fiat_amount_requested_in_usd"`

@@ -2,7 +2,7 @@ CREATE DATABASE IF NOT EXISTS feedback_service;
 USE feedback_service;
 
 CREATE TABLE IF NOT EXISTS feedbacks(
-    id INT NOT NULL AUTO_INCREMENT, 
+    id INT NOT NULL AUTO_INCREMENT,
     parent_id INT DEFAULT NULL,
     sender_uuid BINARY(16) NOT NULL,
     sender_name VARCHAR(64) NOT NULL,
@@ -16,7 +16,8 @@ CREATE TABLE IF NOT EXISTS feedbacks(
     offer_type ENUM('BUY', 'SELL'),
     offer_payment_method VARCHAR(64) NOT NULL,
     offer_payment_method_slug VARCHAR(64) NOT NULL,
-    offer_currency_code ENUM('USD', 'EUR', 'RUB', 'PLN', 'CNY'),
+    offer_fiat_code ENUM('USD', 'EUR', 'RUB', 'PLN', 'CNY', 'VES', 'NGN'),
+    offer_crypto_code VARCHAR(12),
     offer_deleted_at TIMESTAMP NULL DEFAULT NULL,
     trade_hash CHAR(11) NOT NULL,
     trade_fiat_amount_requested_in_usd DECIMAL(10, 2),
@@ -29,7 +30,8 @@ CREATE TABLE IF NOT EXISTS feedbacks(
     PRIMARY KEY (id),
     FOREIGN KEY (parent_id) REFERENCES feedbacks (id) ON DELETE CASCADE,
     INDEX offer_hash_idx (offer_hash),
-    INDEX trade_hash_idx (trade_hash)
+    INDEX trade_hash_idx (trade_hash),
+    INDEX sender_receiver_payment_method_fiat_code_idx (sender_uuid, receiver_uuid, offer_payment_method_slug, offer_fiat_code)
 );
 
 CREATE TABLE IF NOT EXISTS feedback_stats(
